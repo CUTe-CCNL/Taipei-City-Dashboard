@@ -1,0 +1,17 @@
+{
+  "name": "TPDB Frontend",
+  "dockerComposeFile": ["../../docker/docker-compose.yaml"],
+  "service": "dashboard-fe",
+  "workspaceFolder": "/opt/Taipei-City-Dashboard-FE",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Vue.volar",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  },
+  "postCreateCommand": "npm install"
+}

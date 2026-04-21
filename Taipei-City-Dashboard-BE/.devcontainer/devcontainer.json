@@ -1,0 +1,15 @@
+{
+  "name": "TPDB Backend",
+  "dockerComposeFile": ["../../docker/docker-compose.yaml"],
+  "service": "dashboard-be",
+  "workspaceFolder": "/opt/Taipei-City-Dashboard-BE",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.Go",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  },
+  "postCreateCommand": "go mod download"
+}
