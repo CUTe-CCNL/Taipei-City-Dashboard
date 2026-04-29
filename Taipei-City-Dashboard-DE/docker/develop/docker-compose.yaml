@@ -267,6 +267,12 @@ services:
           echo
         fi
             chown -R "${AIRFLOW_UID}:0" /sources/{logs,dags,plugins,data}
+
+        /entrypoint airflow version
+        if ! /entrypoint airflow variables get DEFAULT_EMAIL_LIST >/dev/null 2>&1; then
+          /entrypoint airflow variables set DEFAULT_EMAIL_LIST '[]' || exit 1
+        fi
+
         exec /entrypoint airflow version
     # yamllint enable rule:line-length
     environment:
