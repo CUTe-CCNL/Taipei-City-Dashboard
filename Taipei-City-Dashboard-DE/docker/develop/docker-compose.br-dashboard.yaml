@@ -1,0 +1,4 @@
+networks:
+  default:
+    name: br_dashboard
+    external: true
