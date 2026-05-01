@@ -29,8 +29,6 @@ services:
       VITE_TAIPEIPASS_SCOPE: ${ISSO_CLIENT_SCOPE}
     volumes:
       - ../Taipei-City-Dashboard-FE:/opt/Taipei-City-Dashboard-FE
-    ports:
-      - "8080:80"
     working_dir: /opt/Taipei-City-Dashboard-FE
     command: ["npm", "run", "dev"]
 
