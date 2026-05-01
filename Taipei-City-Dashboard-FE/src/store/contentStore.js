@@ -751,9 +751,12 @@ export const useContentStore = defineStore("content", {
 				} else {
 					// Layer data already exists, filter directly by city
 					const isPersonalDashboard = !cityValue;
-					isPersonalDashboard
-						? (this.mapLayers = [])
-						: this.filterMapLayersByCity(cityValue);
+					if (isPersonalDashboard) {
+						this.mapLayers = [];
+					} else {
+						this.appendMockBusMapLayers();
+						this.filterMapLayersByCity(cityValue);
+					}
 					this.loading = false;
 				}
 			} catch (error) {
@@ -768,6 +771,60 @@ export const useContentStore = defineStore("content", {
 			this.mapLayers = this.allMapLayers.filter(
 				(item) => item.city === city,
 			);
+		},
+		buildMockBusMapLayer(city) {
+			return {
+				id: `mock-bus-realtime-${city}`,
+				index: "bus_realtime_mock",
+				name: "Mock Bus Realtime",
+				source: "Mock Data",
+				short_desc: "Mock realtime bus positions for mapview.",
+				long_desc:
+					"Mock realtime bus positions for mapview (frontend only).",
+				city,
+				time_from: "demo",
+				time_to: null,
+				update_freq: 1,
+				update_freq_unit: "minute",
+				chart_config: {
+					types: ["MapLegend"],
+				},
+				chart_data: [
+					{
+						type: "symbol",
+						name: "Bus (mock)",
+						icon: "bus",
+					},
+				],
+				map_config: [
+					{
+						index: "bus_realtime_mock",
+						title: "Mock Bus Realtime",
+						type: "symbol",
+						source: "geojson",
+						icon: "bus",
+						city,
+						property: [
+							{ key: "bus_id", name: "Bus ID" },
+							{ key: "route_name", name: "Route" },
+							{ key: "speed_kph", name: "Speed (kph)" },
+							{ key: "updated_at", name: "Updated" },
+						],
+					},
+				],
+			};
+		},
+		appendMockBusMapLayers() {
+			this.cityManager.activeCities.forEach((city) => {
+				const exists = this.allMapLayers.some(
+					(item) =>
+						item.index === "bus_realtime_mock" &&
+						item.city === city,
+				);
+				if (!exists) {
+					this.allMapLayers.push(this.buildMockBusMapLayer(city));
+				}
+			});
 		},
 		// 8. Call an API for each map layer component to get its chart data and store it (if in /mapview)
 		async setMapLayersContent(city) {
@@ -796,6 +853,7 @@ export const useContentStore = defineStore("content", {
 					}
 				}
 
+				this.appendMockBusMapLayers();
 				// Filter layers by the specified city
 				this.filterMapLayersByCity(city);
 			} catch (error) {

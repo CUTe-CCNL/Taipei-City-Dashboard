@@ -95,6 +95,8 @@ export const useMapStore = defineStore("map", {
 		layerUpdateTime: {
 			// [layerId]: Date
 		},
+		mockBusIntervals: {},
+		mockBusBaseFeatures: {},
 	}),
 	actions: {
 		/* Initialize Mapbox */
@@ -480,6 +482,9 @@ export const useMapStore = defineStore("map", {
 			} else {
 				this.addMapLayer(map_config);
 			}
+			if (map_config.index === "bus_realtime_mock") {
+				this.startMockBusRealtime(map_config, data);
+			}
 		},
 		// 3-2. Add a raster map as a source in mapbox
 		async addRasterSource(map_config) {
@@ -686,6 +691,82 @@ export const useMapStore = defineStore("map", {
 			this.loadingLayers = this.loadingLayers.filter(
 				(el) => el !== map_config.layerId,
 			);
+		},
+		startMockBusRealtime(map_config, data) {
+			const layerId = map_config.layerId;
+			if (!layerId || !data || !data.features || !data.features.length) {
+				return;
+			}
+
+			this.stopMockBusRealtime(layerId);
+
+			const baseFeatures = data.features.map((feature) => ({
+				...feature,
+				geometry: {
+					...feature.geometry,
+					coordinates: [...feature.geometry.coordinates],
+				},
+				properties: { ...feature.properties },
+			}));
+
+			const update = () => {
+				if (!this.map) {
+					this.stopMockBusRealtime(layerId);
+					return;
+				}
+				const source = this.map.getSource(`${layerId}-source`);
+				if (!source) {
+					this.stopMockBusRealtime(layerId);
+					return;
+				}
+				const now = new Date();
+				const t = now.getTime() / 1000;
+				const features = baseFeatures.map((feature, index) => {
+					const [baseLng, baseLat] = feature.geometry.coordinates;
+					const angle = t / 30 + index;
+					const offsetLng = Math.cos(angle) * 0.002;
+					const offsetLat = Math.sin(angle) * 0.0015;
+					return {
+						...feature,
+						properties: {
+							...feature.properties,
+							speed_kph: Math.round(
+								20 + Math.abs(Math.sin(angle)) * 30,
+							),
+							updated_at: now.toISOString(),
+						},
+						geometry: {
+							...feature.geometry,
+							coordinates: [
+								baseLng + offsetLng,
+								baseLat + offsetLat,
+							],
+						},
+					};
+				});
+				source.setData({
+					type: "FeatureCollection",
+					features,
+				});
+			};
+
+			this.mockBusBaseFeatures[layerId] = baseFeatures;
+			update();
+			this.mockBusIntervals[layerId] = setInterval(update, 3000);
+		},
+		stopMockBusRealtime(layerId) {
+			if (this.mockBusIntervals[layerId]) {
+				clearInterval(this.mockBusIntervals[layerId]);
+				delete this.mockBusIntervals[layerId];
+			}
+			if (this.mockBusBaseFeatures[layerId]) {
+				delete this.mockBusBaseFeatures[layerId];
+			}
+		},
+		stopAllMockBusRealtime() {
+			Object.keys(this.mockBusIntervals).forEach((layerId) => {
+				this.stopMockBusRealtime(layerId);
+			});
 		},
 		animateFilter(mapLayerId) {
 			this.stopAnimation();
@@ -2565,6 +2646,7 @@ export const useMapStore = defineStore("map", {
 		/* Clearing the map */
 		// 1. Called when the user is switching between maps
 		clearOnlyLayers() {
+			this.stopAllMockBusRealtime();
 			this.currentLayers.forEach((element) => {
 				this.map.removeLayer(element);
 				if (this.map.getSource(`${element}-source`)) {
@@ -2578,6 +2660,7 @@ export const useMapStore = defineStore("map", {
 		},
 		// 2. Called when user navigates away from the map
 		clearEntireMap() {
+			this.stopAllMockBusRealtime();
 			this.currentLayers = [];
 			this.mapConfigs = {};
 			this.map = null;

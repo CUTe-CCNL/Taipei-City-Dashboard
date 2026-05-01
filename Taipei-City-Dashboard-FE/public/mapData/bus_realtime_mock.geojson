@@ -1,0 +1,110 @@
+{
+  "type": "FeatureCollection",
+  "name": "bus_realtime_mock",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "bus_id": "TPE-001",
+        "route_name": "R1",
+        "speed_kph": 28,
+        "updated_at": "2026-05-01T00:00:00Z"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [121.517, 25.047]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "bus_id": "TPE-002",
+        "route_name": "R2",
+        "speed_kph": 22,
+        "updated_at": "2026-05-01T00:00:00Z"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [121.531, 25.036]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "bus_id": "TPE-003",
+        "route_name": "R3",
+        "speed_kph": 31,
+        "updated_at": "2026-05-01T00:00:00Z"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [121.543, 25.052]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "bus_id": "TPE-004",
+        "route_name": "R4",
+        "speed_kph": 18,
+        "updated_at": "2026-05-01T00:00:00Z"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [121.557, 25.041]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "bus_id": "TPE-005",
+        "route_name": "R5",
+        "speed_kph": 25,
+        "updated_at": "2026-05-01T00:00:00Z"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [121.497, 25.052]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "bus_id": "TPE-006",
+        "route_name": "R6",
+        "speed_kph": 27,
+        "updated_at": "2026-05-01T00:00:00Z"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [121.503, 25.032]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "bus_id": "TPE-007",
+        "route_name": "R7",
+        "speed_kph": 33,
+        "updated_at": "2026-05-01T00:00:00Z"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [121.565, 25.057]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "bus_id": "TPE-008",
+        "route_name": "R8",
+        "speed_kph": 20,
+        "updated_at": "2026-05-01T00:00:00Z"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [121.485, 25.044]
+      }
+    }
+  ]
+}
