@@ -14,6 +14,7 @@ import DonutChart from "./components/DonutChart.vue";
 import BarChart from "./components/BarChart.vue";
 import TreemapChart from "./components/TreemapChart.vue";
 import SankeyChart from "./components/SankeyChart.vue";
+import SunburstChart from "./components/SunburstChart.vue";
 import ColumnChart from "./components/ColumnChart.vue";
 import BarPercentChart from "./components/BarPercentChart.vue";
 import GuageChart from "./components/GuageChart.vue";
@@ -48,6 +49,7 @@ import TimelineSeparateChartSvg from "./assets/chart/TimelineSeparateChart.svg";
 import BarChartWithGoalSvg from "./assets/chart/BarChartWithGoal.svg";
 import TreemapChartSvg from "./assets/chart/TreemapChart.svg";
 import SankeyChartSvg from "./assets/chart/SankeyChart.svg";
+import SunburstChartSvg from "./assets/chart/SunburstChart.svg";
 import IndicatorChartSvg from "./assets/chart/IndicatorChart.svg";
 import TextUnitChartSvg from "./assets/chart/TextUnitChart.svg";
 
@@ -210,6 +212,8 @@ function returnChartComponent(name, svg) {
 		return svg ? TreemapChartSvg : TreemapChart;
 	case "SankeyChart":
 		return svg ? SankeyChartSvg : SankeyChart;
+	case "SunburstChart":
+		return svg ? SunburstChartSvg : SunburstChart;
 	case "BarPercentChart":
 		return svg ? BarPercentChartSvg : BarPercentChart;
 	case "GuageChart":
