@@ -29,10 +29,10 @@ var _ llms.Model = (*TWCC)(nil)
 
 func New(apiKey, baseURL, model string, timeout int) *TWCC {
 	return &TWCC{
-		APIKey:     apiKey,
-		BaseURL:    baseURL,
-		ModelName:  model,
-		HTTPClient: &http.Client{Timeout: time.Duration(timeout) * time.Second},
+		APIKey:      apiKey,
+		BaseURL:     baseURL,
+		ModelName:   model,
+		HTTPClient:  &http.Client{Timeout: time.Duration(timeout) * time.Second},
 		Temperature: 0.7,
 		MaxTokens:   350,
 	}
@@ -43,6 +43,15 @@ func (m *TWCC) GenerateContent(ctx context.Context, messages []llms.MessageConte
 	for _, opt := range options {
 		opt(&opts)
 	}
+
+	toolNames := make([]string, 0, len(opts.Tools))
+	for _, tool := range opts.Tools {
+		if tool.Function == nil {
+			continue
+		}
+		toolNames = append(toolNames, tool.Function.Name)
+	}
+	logs.FInfo("TWCC Options: tools=%d tool_choice=%v names=%v", len(opts.Tools), opts.ToolChoice, toolNames)
 
 	twccMessages := m.toTWCCMessages(messages)
 	twccParams := m.toTWCCParameters(&opts)
@@ -127,11 +136,16 @@ func (m *TWCC) toTWCCMessages(messages []llms.MessageContent) []TWCCMessage {
 
 func (m *TWCC) mapRole(role llms.ChatMessageType) string {
 	switch role {
-	case llms.ChatMessageTypeHuman: return "user"
-	case llms.ChatMessageTypeAI: return "assistant"
-	case llms.ChatMessageTypeSystem: return "system"
-	case llms.ChatMessageTypeTool: return "tool"
-	default: return string(role)
+	case llms.ChatMessageTypeHuman:
+		return "user"
+	case llms.ChatMessageTypeAI:
+		return "assistant"
+	case llms.ChatMessageTypeSystem:
+		return "system"
+	case llms.ChatMessageTypeTool:
+		return "tool"
+	default:
+		return string(role)
 	}
 }
 
@@ -139,19 +153,35 @@ func (m *TWCC) toTWCCParameters(opts *llms.CallOptions) TWCCParameters {
 	p := TWCCParameters{Stream: opts.StreamingFunc != nil}
 	meta := opts.Metadata
 
-	if v, ok := meta["max_new_tokens"].(int); ok { p.MaxNewTokens = &v }
-	if v, ok := meta["temperature"].(float64); ok { p.Temperature = &v }
-	if v, ok := meta["top_p"].(float64); ok { p.TopP = &v }
-	if v, ok := meta["top_k"].(int); ok { p.TopK = &v }
-	if v, ok := meta["frequence_penalty"].(float64); ok { p.FrequencePenalty = &v }
-	if v, ok := meta["stop_sequences"].([]string); ok { p.StopSequences = v }
-	if v, ok := meta["seed"].(int); ok { p.Seed = &v }
-	
+	if v, ok := meta["max_new_tokens"].(int); ok {
+		p.MaxNewTokens = &v
+	}
+	if v, ok := meta["temperature"].(float64); ok {
+		p.Temperature = &v
+	}
+	if v, ok := meta["top_p"].(float64); ok {
+		p.TopP = &v
+	}
+	if v, ok := meta["top_k"].(int); ok {
+		p.TopK = &v
+	}
+	if v, ok := meta["frequence_penalty"].(float64); ok {
+		p.FrequencePenalty = &v
+	}
+	if v, ok := meta["stop_sequences"].([]string); ok {
+		p.StopSequences = v
+	}
+	if v, ok := meta["seed"].(int); ok {
+		p.Seed = &v
+	}
+
 	return p
 }
 
 func (m *TWCC) toTWCCTools(tools []llms.Tool) []TWCCTool {
-	if len(tools) == 0 { return nil }
+	if len(tools) == 0 {
+		return nil
+	}
 	twccTools := make([]TWCCTool, 0, len(tools))
 	for _, t := range tools {
 		params := t.Function.Parameters
@@ -179,10 +209,14 @@ func (m *TWCC) doRequest(ctx context.Context, body []byte, isStreaming bool) (*h
 	req.Header.Set("X-API-KEY", m.APIKey)
 
 	client := m.HTTPClient
-	if isStreaming { client = &http.Client{Timeout: 0} }
+	if isStreaming {
+		client = &http.Client{Timeout: 0}
+	}
 
 	resp, err := client.Do(req)
-	if err != nil { return nil, fmt.Errorf("failed to send request to TWCC: %v", err) }
+	if err != nil {
+		return nil, fmt.Errorf("failed to send request to TWCC: %v", err)
+	}
 
 	if resp.StatusCode != http.StatusOK {
 		raw, _ := io.ReadAll(resp.Body)
@@ -196,17 +230,21 @@ func (m *TWCC) doRequest(ctx context.Context, body []byte, isStreaming bool) (*h
 func (m *TWCC) handleStreamingResponse(ctx context.Context, body io.Reader, opts *llms.CallOptions) (*llms.ContentResponse, error) {
 	reader := bufio.NewReader(body)
 	proc := &streamProcessor{
-		toolCallsMap: make(map[int]*TWCCToolCall),
+		toolCallsMap:  make(map[int]*TWCCToolCall),
 		streamingFunc: opts.StreamingFunc,
 	}
 
 	for {
 		line, err := reader.ReadString('\n')
 		if line != "" {
-			if stop := proc.processLine(ctx, line); stop { break }
+			if stop := proc.processLine(ctx, line); stop {
+				break
+			}
 		}
 		if err != nil {
-			if err == io.EOF { break }
+			if err == io.EOF {
+				break
+			}
 			return nil, fmt.Errorf("error reading stream: %v", err)
 		}
 	}
@@ -224,6 +262,13 @@ type streamProcessor struct {
 	fullContent        strings.Builder
 	lastUsage          *TWCCStreamResponse
 	streamingFunc      func(context.Context, []byte) error
+}
+
+func extractStreamChunkText(chunk *TWCCStreamResponse) string {
+	if len(chunk.Choices) > 0 && chunk.Choices[0].Delta.Content != "" {
+		return chunk.Choices[0].Delta.Content
+	}
+	return chunk.GeneratedText
 }
 
 func (p *streamProcessor) processLine(ctx context.Context, line string) bool {
@@ -269,7 +314,9 @@ func (p *streamProcessor) handleDone(ctx context.Context, line string) {
 }
 
 func (p *streamProcessor) detectType(chunk *TWCCStreamResponse) {
-	if p.detectionConfirmed { return }
+	if p.detectionConfirmed {
+		return
+	}
 
 	// A. Structural Check
 	hasTools := len(chunk.ToolCalls) > 0 || (len(chunk.Choices) > 0 && (len(chunk.Choices[0].Delta.ToolCalls) > 0 || chunk.Choices[0].FinishReason == "tool_calls"))
@@ -279,24 +326,28 @@ func (p *streamProcessor) detectType(chunk *TWCCStreamResponse) {
 	}
 
 	// B. Heuristic Check (Wait for enough content or XML tags)
-	text := chunk.GeneratedText
-	if len(chunk.Choices) > 0 { text = chunk.Choices[0].Delta.Content }
+	text := extractStreamChunkText(chunk)
 	p.contentBuffer.WriteString(text)
-	
+
 	combined := p.contentBuffer.String()
 	if strings.Contains(combined, "<function=") || strings.Contains(combined, "tool<function") {
 		p.isToolCalling, p.detectionConfirmed = true, true
+	} else if combined != "" && !strings.Contains(combined, "<") {
+		// Normal text responses should start streaming as soon as we see
+		// non-markup content, instead of waiting for a large buffer.
+		p.isToolCalling, p.detectionConfirmed = false, true
 	} else if len(combined) > 64 {
 		p.isToolCalling, p.detectionConfirmed = false, true
 	}
 }
 
 func (p *streamProcessor) processChunk(ctx context.Context, chunk *TWCCStreamResponse, rawLine string) {
-	text := chunk.GeneratedText
-	if len(chunk.Choices) > 0 { text = chunk.Choices[0].Delta.Content }
+	text := extractStreamChunkText(chunk)
 	p.fullContent.WriteString(text)
 
-	if chunk.PromptTokens > 0 || chunk.Usage != nil { p.lastUsage = chunk }
+	if chunk.PromptTokens > 0 || chunk.Usage != nil {
+		p.lastUsage = chunk
+	}
 
 	if !p.detectionConfirmed {
 		p.lineBuffer = append(p.lineBuffer, rawLine)
@@ -320,21 +371,31 @@ func (p *streamProcessor) accumulateTools(chunk *TWCCStreamResponse) {
 
 	for _, tc := range source {
 		idx := 0
-		if tc.Index != nil { idx = *tc.Index }
+		if tc.Index != nil {
+			idx = *tc.Index
+		}
 
 		if _, exists := p.toolCallsMap[idx]; !exists {
 			p.toolCallsMap[idx] = &TWCCToolCall{ID: tc.ID, Type: tc.Type}
 			p.toolCallsMap[idx].Function.Name = tc.Function.Name
 		}
 		p.toolCallsMap[idx].Function.Arguments += cleanXML(tc.Function.Arguments)
-		if tc.ID != "" { p.toolCallsMap[idx].ID = tc.ID }
-		if tc.Function.Name != "" { p.toolCallsMap[idx].Function.Name = tc.Function.Name }
+		if tc.ID != "" {
+			p.toolCallsMap[idx].ID = tc.ID
+		}
+		if tc.Function.Name != "" {
+			p.toolCallsMap[idx].Function.Name = tc.Function.Name
+		}
 	}
 }
 
 func (p *streamProcessor) flushBuffer(ctx context.Context) {
-	if len(p.lineBuffer) == 0 { return }
-	for _, b := range p.lineBuffer { p.streamingFunc(ctx, []byte(b)) }
+	if len(p.lineBuffer) == 0 {
+		return
+	}
+	for _, b := range p.lineBuffer {
+		p.streamingFunc(ctx, []byte(b))
+	}
 	p.lineBuffer = nil
 }
 
@@ -348,7 +409,7 @@ func (p *streamProcessor) finalize(ctx context.Context) {
 func (p *streamProcessor) toContentResponse(model string) *llms.ContentResponse {
 	resp := &llms.ContentResponse{
 		Choices: []*llms.ContentChoice{{
-			Content: p.fullContent.String(),
+			Content:        p.fullContent.String(),
 			GenerationInfo: map[string]interface{}{"model": model},
 		}},
 	}
@@ -376,8 +437,12 @@ func (p *streamProcessor) toContentResponse(model string) *llms.ContentResponse 
 		u := p.lastUsage
 		it, ot, tt := u.PromptTokens, u.GeneratedTokens, u.TotalTokens
 		if u.Usage != nil {
-			if it == 0 { it = u.Usage.PromptTokens }
-			if ot == 0 { ot = u.Usage.GeneratedTokens }
+			if it == 0 {
+				it = u.Usage.PromptTokens
+			}
+			if ot == 0 {
+				ot = u.Usage.GeneratedTokens
+			}
 			tt = it + ot
 		}
 		resp.Choices[0].GenerationInfo["usage"] = map[string]interface{}{
@@ -409,7 +474,9 @@ func (m *TWCC) handleStandardResponse(body io.Reader) (*llms.ContentResponse, er
 		}
 	} else if len(tr.Choices) > 0 {
 		c := tr.Choices[0]
-		if c.Message.Content != "" { content = c.Message.Content }
+		if c.Message.Content != "" {
+			content = c.Message.Content
+		}
 		for _, tc := range c.Message.ToolCalls {
 			tools = append(tools, llms.ToolCall{
 				ID: tc.ID, Type: tc.Type,
@@ -448,17 +515,23 @@ func extractXMLToolCalls(text string) ([]llms.ToolCall, string) {
 		if startIdx == -1 {
 			startTag = "tool<function="
 			startIdx = strings.Index(remainingText, startTag)
-			if startIdx == -1 { break }
+			if startIdx == -1 {
+				break
+			}
 		}
 
 		nameEndIdx := strings.Index(remainingText[startIdx:], ">")
-		if nameEndIdx == -1 { break }
+		if nameEndIdx == -1 {
+			break
+		}
 		nameEndIdx += startIdx
 
 		funcName := remainingText[startIdx+len(startTag) : nameEndIdx]
 		endTag := "</function>"
 		endIdx := strings.Index(remainingText[nameEndIdx:], endTag)
-		if endIdx == -1 { break }
+		if endIdx == -1 {
+			break
+		}
 		endIdx += nameEndIdx
 
 		args := remainingText[nameEndIdx+1 : endIdx]
@@ -474,7 +547,9 @@ func extractXMLToolCalls(text string) ([]llms.ToolCall, string) {
 func (m *TWCC) Call(ctx context.Context, prompt string, options ...llms.CallOption) (string, error) {
 	msg := llms.MessageContent{Role: llms.ChatMessageTypeHuman, Parts: []llms.ContentPart{llms.TextContent{Text: prompt}}}
 	resp, err := m.GenerateContent(ctx, []llms.MessageContent{msg}, options...)
-	if err != nil { return "", err }
+	if err != nil {
+		return "", err
+	}
 	return resp.Choices[0].Content, nil
 }
 
@@ -486,10 +561,14 @@ func cleanXML(s string) string {
 		startIdx := strings.Index(s, "<function=")
 		if startIdx == -1 {
 			startIdx = strings.Index(s, "tool<function=")
-			if startIdx == -1 { break }
+			if startIdx == -1 {
+				break
+			}
 		}
 		endIdx := strings.Index(s[startIdx:], ">")
-		if endIdx == -1 { break }
+		if endIdx == -1 {
+			break
+		}
 		endIdx += startIdx
 		s = s[:startIdx] + s[endIdx+1:]
 	}
@@ -498,11 +577,15 @@ func cleanXML(s string) string {
 
 // isPotentialToolPrefix checks if the string ends with a potential start of an XML tool call tag.
 func isPotentialToolPrefix(s string) bool {
-	if len(s) > 20 { s = s[len(s)-20:] }
+	if len(s) > 20 {
+		s = s[len(s)-20:]
+	}
 	s = strings.ToLower(s)
 	prefixes := []string{" tool<", "tool<", "<func", "<f", " <"}
 	for _, p := range prefixes {
-		if strings.HasSuffix(s, p) { return true }
+		if strings.HasSuffix(s, p) {
+			return true
+		}
 	}
 	return strings.HasSuffix(s, " tool")
 }

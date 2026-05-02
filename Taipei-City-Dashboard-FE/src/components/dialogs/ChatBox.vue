@@ -13,9 +13,9 @@ import http from "../../router/axios";
 const chatStore = useChatStore();
 const contentStore = useContentStore();
 const authStore = useAuthStore();
-const { addChatData, addQueryData, saveChatLog } = chatStore;
+const { addChatData, streamAiChat, saveChatLog } = chatStore;
 const { createDashboard } = contentStore;
-const { chatData } = storeToRefs(chatStore);
+const { chatData, toolLoading, aiStreaming } = storeToRefs(chatStore);
 const { editDashboard } = storeToRefs(contentStore);
 const { user } = storeToRefs(authStore);
 
@@ -62,13 +62,17 @@ const qaBtnHandler = async (text, relations) => {
 	}
 };
 
-const sendBtnHandler = (text) => {
-	if (!text.trim()) return;
-	addQueryData({
-		role: "user",
-		content: text,
-	});
+const sendBtnHandler = async (text) => {
+	const normalized = text.trim();
+	if (!normalized || aiStreaming.value) return;
+
+	const original = userMessage.value;
 	userMessage.value = "";
+
+	const result = await streamAiChat(normalized);
+	if (!result.ok && result.reason !== "busy") {
+		userMessage.value = original;
+	}
 };
 
 const toggleSticky = () => {
@@ -114,12 +118,12 @@ watch(
           v-show="isStickyOpen"
           class="sticky-body"
         >
-          <span>小幫手會依據您輸入的內容，自動檢索本站臺的組件資料庫，並回傳相似度較高的組件清單，協助您快速找到符合需求的元件或資訊。<br><br>
-            目前小幫手僅提供組件比對與分析服務，不支援一般聊天功能。如造成不便，敬請見諒！</span>
+          <span>小幫手會依據您輸入的內容，動態判斷要以「文字分析」回覆，或推薦可加入儀表板的圖表組件清單。<br><br>
+            若需要更精準結果，建議提供時間範圍、主題或關鍵字（例如：上週、垃圾收運、人口結構）。</span>
         </div>
       </div>
       <div
-        v-for="chat in chatData"
+        v-for="(chat, index) in chatData"
         :key="chat.id"
         class="message"
       >
@@ -137,6 +141,16 @@ watch(
               class="message--bubble"
             >
               <p>{{ chat.content }}</p>
+            </div>
+            <div
+              v-else-if="toolLoading && index === chatData.length - 1"
+              class="message--bubble message--typing"
+              aria-live="polite"
+              aria-label="AI 回覆中"
+            >
+              <span class="typing-dot" />
+              <span class="typing-dot" />
+              <span class="typing-dot" />
             </div>
             <!-- 表格區 -->
             <div
@@ -209,15 +223,22 @@ watch(
 
     <!-- 輸入區 -->
     <div class="input-area">
-      <input
-        v-model="userMessage"
-        type="text"
-        placeholder="輸入訊息..."
-        @keyup.enter="sendBtnHandler(userMessage)"
-      >
-      <button @click="sendBtnHandler(userMessage)">
-        <SendIcon />
-      </button>
+      <div class="input-row">
+        <input
+          v-model="userMessage"
+          :disabled="aiStreaming"
+          type="text"
+          placeholder="輸入訊息..."
+          @keyup.enter.prevent="sendBtnHandler(userMessage)"
+        >
+        <button
+          type="button"
+          :disabled="aiStreaming"
+          @click="sendBtnHandler(userMessage)"
+        >
+          <SendIcon />
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -436,36 +457,88 @@ $radius-20: 20px;
 
 	.input-area {
 		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 0.5rem;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 0.4rem;
 		padding: 1.5rem 1.125rem;
 		background: $panel-bg;
 
-		input[type="text"] {
-			background: $white;
-			height: 35px;
-			width: 100%;
-			border-radius: 20px;
-			padding: 0 1rem;
-			border: none;
-			outline: none;
-			color: black;
-		}
-
-		button {
-			height: 35px;
+		.input-row {
 			display: flex;
 			align-items: center;
-			justify-content: center;
-			background: transparent;
-			border: none;
-			cursor: pointer;
+			gap: 0.5rem;
 
-			&:hover {
-				filter: brightness(0.5);
+			input[type="text"] {
+				background: $white;
+				height: 35px;
+				width: 100%;
+				border-radius: 20px;
+				padding: 0 1rem;
+				border: none;
+				outline: none;
+				color: black;
+
+				&:disabled {
+					opacity: 0.65;
+					cursor: not-allowed;
+				}
+			}
+
+			button {
+				height: 35px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				background: transparent;
+				border: none;
+				cursor: pointer;
+
+				&:hover {
+					filter: brightness(0.5);
+				}
+
+				&:disabled {
+					cursor: not-allowed;
+					opacity: 0.45;
+				}
 			}
 		}
+	}
+}
+
+.message--typing {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	padding: 10px 16px;
+
+	.typing-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background-color: rgba(255, 255, 255, 0.95);
+		animation: dot-bounce 1.1s infinite ease-in-out;
+	}
+
+	.typing-dot:nth-child(2) {
+		animation-delay: 0.15s;
+	}
+
+	.typing-dot:nth-child(3) {
+		animation-delay: 0.3s;
+	}
+}
+
+@keyframes dot-bounce {
+	0%,
+	80%,
+	100% {
+		transform: translateY(0);
+		opacity: 0.35;
+	}
+	40% {
+		transform: translateY(-6px);
+		opacity: 1;
 	}
 }
 </style>
