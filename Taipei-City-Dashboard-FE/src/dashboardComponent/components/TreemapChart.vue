@@ -21,7 +21,32 @@ const emits = defineEmits([
 	"fly"
 ]);
 
-const chartOptions = ref({
+const MAX_ITEMS = 20;
+
+const displayedSeries = computed(() => {
+	if (!props.series?.length) return [];
+	const sourceData = [...(props.series[0]?.data ?? [])].sort(
+		(a, b) => b.y - a.y
+	);
+
+	if (sourceData.length <= MAX_ITEMS) {
+		return [{ ...props.series[0], data: sourceData }];
+	}
+
+	const topItems = sourceData.slice(0, MAX_ITEMS);
+	const otherSum = sourceData
+		.slice(MAX_ITEMS)
+		.reduce((acc, item) => acc + item.y, 0);
+
+	return [
+		{
+			...props.series[0],
+			data: [...topItems, { x: "其他", y: otherSum }],
+		},
+	];
+});
+
+const chartOptions = computed(() => ({
 	chart: {
 		borderRadius: 5,
 		toolbar: {
@@ -30,11 +55,8 @@ const chartOptions = ref({
 	},
 	colors: [...props.chart_config.color],
 	dataLabels: {
-		formatter: function (
-			val,
-			{ dataPointIndex }
-		) {
-			return dataPointIndex > 5 ? "" : val;
+		formatter: function (val) {
+			return val;
 		},
 	},
 	grid: {
@@ -87,7 +109,7 @@ const chartOptions = ref({
 		},
 		type: "category",
 	},
-});
+}));
 
 const sum = computed(() => {
 	let sum = 0;
@@ -103,6 +125,10 @@ function handleDataSelection(_e, _chartContext, config) {
 	if (!props.map_filter || !props.map_filter_on) {
 		return;
 	}
+	const categoryLabel = config.w.globals.categoryLabels[config.dataPointIndex];
+	if (categoryLabel === "其他") {
+		return;
+	}
 	if (
 		`${config.dataPointIndex}-${config.seriesIndex}` !== selectedIndex.value
 	) {
@@ -112,7 +138,7 @@ function handleDataSelection(_e, _chartContext, config) {
 				"filterByParam",
 				props.map_filter,
 				props.map_config,
-				config.w.globals.categoryLabels[config.dataPointIndex],
+				categoryLabel,
 				null
 			);
 		}
@@ -121,7 +147,7 @@ function handleDataSelection(_e, _chartContext, config) {
 			emits(
 				"filterByLayer",
 				props.map_config,
-				config.w.globals.categoryLabels[config.dataPointIndex]
+				categoryLabel
 			);
 		}
 		selectedIndex.value = `${config.dataPointIndex}-${config.seriesIndex}`;
@@ -149,7 +175,7 @@ function handleDataSelection(_e, _chartContext, config) {
       width="100%"
       type="treemap"
       :options="chartOptions"
-      :series="series"
+      :series="displayedSeries"
       @data-point-selection="handleDataSelection"
     />
   </div>
