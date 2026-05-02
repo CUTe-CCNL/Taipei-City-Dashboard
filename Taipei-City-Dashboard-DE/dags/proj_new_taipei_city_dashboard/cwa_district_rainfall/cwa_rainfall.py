@@ -76,9 +76,9 @@ def _transfer(**kwargs):
             def clean_rain_value(val):
                 try:
                     v = float(val)
-                    return 0.0 if v < 0 else v
+                    return float(val) if float(val) >= 0 else None
                 except (ValueError, TypeError):
-                    return 0.0
+                    return None
 
             # 確保欄位名稱與你的 SQL Table 完全一致
             records.append({
