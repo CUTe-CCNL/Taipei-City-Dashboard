@@ -29,9 +29,18 @@ const componentBackgroundColor = computed(() => {
 	themeStore.theme;
 	return getThemeColor("--color-component-background");
 });
+const normalTextColor = computed(() => {
+	themeStore.theme;
+	return getThemeColor("--color-normal-text");
+});
+const complementTextColor = computed(() => {
+	themeStore.theme;
+	return getThemeColor("--color-complement-text");
+});
 
 const chartOptions = computed(() => ({
 	chart: {
+		foreColor: complementTextColor.value,
 		stacked: true,
 		stackType: "100%",
 		toolbar: {
@@ -43,6 +52,9 @@ const chartOptions = computed(() => ({
 		: props.chart_config.color,
 	dataLabels: {
 		textAnchor: "start",
+		style: {
+			colors: props.series.map(() => normalTextColor.value),
+		},
 	},
 	grid: {
 		show: false,
