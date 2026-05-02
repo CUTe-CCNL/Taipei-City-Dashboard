@@ -40,6 +40,11 @@ const routes = [
 		component: MapView,
 	},
 	{
+		path: "/cctv",
+		name: "cctv",
+		component: () => import("../views/CctvView.vue"),
+	},
+	{
 		path: "/component",
 		name: "component",
 		component: ComponentView,
@@ -121,7 +126,7 @@ router.beforeEach((to) => {
 	const authStore = useAuthStore();
 	if (authStore.isMobileDevice && authStore.isNarrowDevice) {
 		if (
-			!["dashboard", "component-info", "callback", "embed", "mapview"].includes(
+			!["dashboard", "component-info", "callback", "embed", "mapview", "cctv"].includes(
 				to.name
 			)
 		) {

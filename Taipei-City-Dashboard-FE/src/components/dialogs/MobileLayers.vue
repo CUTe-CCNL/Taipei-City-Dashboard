@@ -10,13 +10,19 @@ import MobileLayerTab from "../utilities/miscellaneous/MobileLayerTab.vue";
 
 const dialogStore = useDialogStore();
 const contentStore = useContentStore();
+const currentDashboardIndex = computed(
+	() => contentStore?.currentDashboard?.index ?? "",
+);
+const currentDashboardComponents = computed(
+	() => contentStore?.currentDashboard?.components ?? [],
+);
 
 // Filter out components without maps
 const filteredMapLayers = computed(() => {
-	if (!contentStore.currentDashboard.components) {
+	if (!currentDashboardComponents.value.length) {
 		return [];
 	}
-	return contentStore.currentDashboard.components.filter(
+	return currentDashboardComponents.value.filter(
 		(element) => element?.map_config.length !== 0
 	);
 });
@@ -40,12 +46,11 @@ const filteredMapLayers = computed(() => {
           <!-- Map Layers Dashboard -->
           <div
             v-if="
-              contentStore?.currentDashboard.index.includes('map-layers')
+              currentDashboardIndex.includes('map-layers')
             "
           >
             <MobileLayerTab
-              v-for="item in contentStore?.currentDashboard
-                .components"
+              v-for="item in currentDashboardComponents"
               :key="`map-layer-${item.index}`"
               :content="item"
             />

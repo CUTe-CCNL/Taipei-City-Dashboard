@@ -100,10 +100,15 @@ export const useMapStore = defineStore("map", {
 		/* Initialize Mapbox */
 		// 1. Creates the mapbox instance and passes in initial configs
 		initializeMapBox() {
+			this.isPreloading = true;
 			this.map = null;
 			this.marker = null;
 			this.overlay = null;
 			const MAPBOXTOKEN = import.meta.env.VITE_MAPBOXTOKEN;
+			if (!MAPBOXTOKEN) {
+				console.error("VITE_MAPBOXTOKEN is missing. Skip map initialization.");
+				return null;
+			}
 			mapboxGl.accessToken = MAPBOXTOKEN;
 			this.map = new mapboxGl.Map({
 				...MapObjectConfig,
@@ -174,6 +179,7 @@ export const useMapStore = defineStore("map", {
 		// Due to performance concerns, Taipei 3D Buildings won't be added in the mobile version
 		initializeBasicLayers() {
 			const authStore = useAuthStore();
+			const mapInstance = this.map;
 			const allowedDomains = [
 				"citydashboard.taipei",
 				"test-citydashboard.taipei",
@@ -182,12 +188,13 @@ export const useMapStore = defineStore("map", {
 				window.location.hostname,
 			);
 
-			if (!this.map) return;
+			if (!mapInstance) return;
 			// metroTaipei District Labels
 			fetch(`/mapData/metrotaipei_town.geojson`)
 				.then((response) => response.json())
 				.then((data) => {
-					this.map
+					if (this.map !== mapInstance) return;
+					mapInstance
 						.addSource("metrotaipei_town_label", {
 							type: "geojson",
 							data: data,
@@ -198,7 +205,8 @@ export const useMapStore = defineStore("map", {
 			fetch(`/mapData/metrotaipei_village.geojson`)
 				.then((response) => response.json())
 				.then((data) => {
-					this.map
+					if (this.map !== mapInstance) return;
+					mapInstance
 						.addSource("metrotaipei_village_label", {
 							type: "geojson",
 							data: data,
@@ -207,7 +215,7 @@ export const useMapStore = defineStore("map", {
 				});
 			// Taipei 3D Buildings
 			if (!authStore.isMobileDevice) {
-				this.map
+				mapInstance
 					.addSource("taipei_building_3d_source", {
 						type: "vector",
 						url: import.meta.env.VITE_MAPBOXTILE,
@@ -216,7 +224,7 @@ export const useMapStore = defineStore("map", {
 			}
 			// Taipei Village Boundaries
 			if (hasSourceLayer) {
-				this.map
+				mapInstance
 					.addSource(`metrotaipei_village`, {
 						type: "vector",
 						scheme: "tms",
@@ -226,7 +234,7 @@ export const useMapStore = defineStore("map", {
 						],
 					})
 					.addLayer(metroTpVillage);
-				this.map
+				mapInstance
 					.addSource(`metrotaipei_town`, {
 						type: "vector",
 						scheme: "tms",
@@ -242,20 +250,21 @@ export const useMapStore = defineStore("map", {
 
 				// 載入區界
 				// 加入 source + layer
-				this.map.addSource("metrotaipei_town", {
+				mapInstance.addSource("metrotaipei_town", {
 					type: "geojson",
 					data: "/mapData/metrotaipei_town.geojson",
 				});
 
-				this.map.addLayer({
+				mapInstance.addLayer({
 					...metroTpDistrict,
 					id: "metrotaipei_town",
 					source: "metrotaipei_town",
 				});
 
 				// 綁定 loading 完成
-				this.map.on("sourcedata", (e) => {
+				mapInstance.on("sourcedata", (e) => {
 					if (
+						this.map === mapInstance &&
 						e.sourceId === "metrotaipei_town" &&
 						e.isSourceLoaded &&
 						this.loadingLayers.includes("metrotaipei_town")
@@ -271,20 +280,21 @@ export const useMapStore = defineStore("map", {
 				this.loadingLayers.push("metrotaipei_village");
 
 				// 加入 source + layer
-				this.map.addSource("metrotaipei_village", {
+				mapInstance.addSource("metrotaipei_village", {
 					type: "geojson",
 					data: "/mapData/metrotaipei_village.geojson",
 				});
 
-				this.map.addLayer({
+				mapInstance.addLayer({
 					...metroTpVillage,
 					id: "metrotaipei_village",
 					source: "metrotaipei_village",
 				});
 
 				// 綁定 loading 完成
-				this.map.on("sourcedata", (e) => {
+				mapInstance.on("sourcedata", (e) => {
 					if (
+						this.map === mapInstance &&
 						e.sourceId === "metrotaipei_village" &&
 						e.isSourceLoaded &&
 						this.loadingLayers.includes("metrotaipei_village")
@@ -296,10 +306,11 @@ export const useMapStore = defineStore("map", {
 				});
 			}
 
-			this.addSymbolSources();
+			this.addSymbolSources(mapInstance);
 		},
 		// 3. Adds symbols that will be used by some map layers
-		async addSymbolSources() {
+		async addSymbolSources(mapInstance = this.map) {
+			if (!mapInstance) return;
 			const images = [
 				"metro",
 				"triangle_green",
@@ -312,11 +323,14 @@ export const useMapStore = defineStore("map", {
 				"youbike_elec",
 			];
 			images.forEach((element) => {
-				this.map.loadImage(
+				mapInstance.loadImage(
 					`/images/map/${element}.png`,
 					(error, image) => {
 						if (error) throw error;
-						this.map.addImage(element, image);
+						if (this.map !== mapInstance || !image) return;
+						if (!mapInstance.hasImage(element)) {
+							mapInstance.addImage(element, image);
+						}
 					},
 				);
 			});
@@ -333,6 +347,10 @@ export const useMapStore = defineStore("map", {
 					loader.load(
 						m.url,
 						(gltf) => {
+							if (this.map !== mapInstance) {
+								resolve();
+								return;
+							}
 							this.preloadedModels[m.id] = markRaw(gltf.scene);
 							resolve();
 						},
@@ -349,7 +367,9 @@ export const useMapStore = defineStore("map", {
 			await Promise.all(models.map(loadModel));
 
 			// 全部載入完畢才變 false
-			this.isPreloading = false;
+			if (this.map === mapInstance) {
+				this.isPreloading = false;
+			}
 		},
 		// 4. Toggle district boundaries
 		toggleDistrictBoundaries(status) {
@@ -2271,6 +2291,7 @@ export const useMapStore = defineStore("map", {
 		// 1. Zoom to a location
 		// [[lng, lat], zoom, pitch, bearing, savedLocationName]
 		easeToLocation(location_array) {
+			if (!this.map) return;
 			if (location_array?.zoom) {
 				this.map.easeTo({
 					center: [location_array.center_x, location_array.center_y],
@@ -2291,6 +2312,7 @@ export const useMapStore = defineStore("map", {
 		},
 		// 2. Fly to a location
 		flyToLocation(location_array) {
+			if (!this.map) return;
 			this.map.flyTo({
 				center: location_array,
 				duration: 1000,
@@ -2306,8 +2328,11 @@ export const useMapStore = defineStore("map", {
 		},
 		// 4. Update the zoom and center of the map
 		updateMapViewForCity(city) {
-			this.map.setZoom(CityMapView[city].zoom);
-			this.map.setCenter(CityMapView[city].center);
+			if (!this.map) return;
+			const cityConfig = CityMapView[city] || CityMapView.default;
+			if (!cityConfig) return;
+			this.map.setZoom(cityConfig.zoom);
+			this.map.setCenter(cityConfig.center);
 		},
 
 		/* Map Filtering */
@@ -2578,6 +2603,9 @@ export const useMapStore = defineStore("map", {
 		},
 		// 2. Called when user navigates away from the map
 		clearEntireMap() {
+			if (this.map) {
+				this.map.remove();
+			}
 			this.currentLayers = [];
 			this.mapConfigs = {};
 			this.map = null;
