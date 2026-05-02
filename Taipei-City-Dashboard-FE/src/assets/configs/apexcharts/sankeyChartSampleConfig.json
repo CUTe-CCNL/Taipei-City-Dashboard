@@ -1,0 +1,73 @@
+{
+	"chart_config": {
+		"types": [
+			"SankeyChart"
+		],
+		"unit": "人次",
+		"color": [
+			"#2f7ed8",
+			"#43b581",
+			"#ffb547",
+			"#ff6b6b",
+			"#9b7bff"
+		]
+	},
+	"chart_data": [
+		{
+			"nodes": [
+				{
+					"id": "n1",
+					"title": "捷運"
+				},
+				{
+					"id": "n2",
+					"title": "公車"
+				},
+				{
+					"id": "n3",
+					"title": "汽車"
+				},
+				{
+					"id": "n4",
+					"title": "轉乘"
+				},
+				{
+					"id": "n5",
+					"title": "目的地"
+				}
+			],
+			"edges": [
+				{
+					"source": "n1",
+					"target": "n4",
+					"value": 1400
+				},
+				{
+					"source": "n2",
+					"target": "n4",
+					"value": 900
+				},
+				{
+					"source": "n3",
+					"target": "n4",
+					"value": 650
+				},
+				{
+					"source": "n4",
+					"target": "n5",
+					"value": 2600
+				},
+				{
+					"source": "n1",
+					"target": "n5",
+					"value": 220
+				},
+				{
+					"source": "n2",
+					"target": "n5",
+					"value": 180
+				}
+			]
+		}
+	]
+}

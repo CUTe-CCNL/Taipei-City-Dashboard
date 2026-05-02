@@ -1,0 +1,27 @@
+<svg version="1.2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+	<title>網站圖表ICON</title>
+	<style>
+		tspan { white-space:pre }
+		.s0 { opacity: .3;fill: #000000 }
+		.s1 { opacity: .6;fill: #000000 }
+		.s2 { fill: #000000 }
+	</style>
+	<g id="21 桑基圖">
+		<rect class="s0" x="120" y="180" width="120" height="180" rx="14"/>
+		<rect class="s1" x="120" y="440" width="120" height="220" rx="14"/>
+		<rect class="s2" x="120" y="740" width="120" height="120" rx="14"/>
+
+		<rect class="s0" x="452" y="220" width="120" height="220" rx="14"/>
+		<rect class="s1" x="452" y="520" width="120" height="170" rx="14"/>
+
+		<rect class="s2" x="784" y="310" width="120" height="250" rx="14"/>
+		<rect class="s1" x="784" y="620" width="120" height="160" rx="14"/>
+
+		<path class="s0" d="M240 255 C320 255 360 300 452 330 L452 380 C356 350 320 305 240 305 Z"/>
+		<path class="s1" d="M240 540 C326 540 362 565 452 585 L452 635 C358 615 324 590 240 590 Z"/>
+		<path class="s2" d="M240 790 C324 790 362 760 452 700 L452 750 C360 810 326 840 240 840 Z"/>
+
+		<path class="s1" d="M572 300 C660 300 700 355 784 400 L784 450 C698 405 660 350 572 350 Z"/>
+		<path class="s2" d="M572 585 C660 585 706 610 784 670 L784 720 C702 660 658 635 572 635 Z"/>
+	</g>
+</svg>
