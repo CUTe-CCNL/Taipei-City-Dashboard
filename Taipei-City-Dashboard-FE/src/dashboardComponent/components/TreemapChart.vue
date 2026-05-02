@@ -3,6 +3,7 @@
 <script setup>
 import { ref, computed } from "vue";
 import VueApexCharts from "vue3-apexcharts";
+import { resolveChartColors } from "../utilities/chartColors";
 
 const props = defineProps([
 	"chart_config",
@@ -53,7 +54,10 @@ const chartOptions = computed(() => ({
 			show: false,
 		},
 	},
-	colors: [...props.chart_config.color],
+	colors: resolveChartColors(
+		props.chart_config.color,
+		displayedSeries.value[0]?.data ?? []
+	),
 	dataLabels: {
 		formatter: function (val) {
 			return val;

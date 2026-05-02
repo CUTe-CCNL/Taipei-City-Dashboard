@@ -3,6 +3,7 @@
 <script setup>
 import { computed, ref } from "vue";
 import VueApexCharts from "vue3-apexcharts";
+import { resolveChartColors } from "../utilities/chartColors";
 
 const props = defineProps([
 	"chart_config",
@@ -57,15 +58,28 @@ const sum = computed(() => {
 	return Math.round(parsedSeries.value.reduce((a, b) => a + b) * 100) / 100;
 });
 
+const parsedData = computed(() =>
+	parsedLabels.value.map((label, index) => ({
+		x: label,
+		y: parsedSeries.value[index] ?? 0,
+	}))
+);
+
+const chartColors = computed(() => {
+	const colors = resolveChartColors(props.chart_config.color, parsedData.value);
+	const otherIndex = parsedLabels.value.indexOf("其他");
+	if (otherIndex !== -1) {
+		colors[otherIndex] = "#848c94";
+	}
+	return colors;
+});
+
 // chartOptions needs to be in the bottom since it uses computed data
-const chartOptions = ref({
+const chartOptions = computed(() => ({
 	chart: {
 		offsetY: 10,
 	},
-	colors:
-		props.series.length >= steps.value
-			? [...props.chart_config.color, "#848c94"]
-			: props.chart_config.color,
+	colors: chartColors.value,
 	dataLabels: {
 		formatter: function (
 			_val,
@@ -75,7 +89,7 @@ const chartOptions = ref({
 			return value.length > 7 ? value.slice(0, 6) + "..." : value;
 		},
 	},
-	labels: parsedLabels,
+	labels: parsedLabels.value,
 	legend: {
 		show: false,
 	},
@@ -115,7 +129,7 @@ const chartOptions = ref({
 			);
 		},
 	},
-});
+}));
 
 const selectedIndex = ref(null);
 

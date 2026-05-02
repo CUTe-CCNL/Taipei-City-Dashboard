@@ -2,6 +2,7 @@
 <script setup>
 import { ref, computed } from "vue";
 import VueApexCharts from "vue3-apexcharts";
+import { resolveChartColors } from "../utilities/chartColors";
 
 const props = defineProps([
 	"chart_config",
@@ -20,7 +21,11 @@ const emits = defineEmits([
 	"fly"
 ]);
 
-const chartOptions = ref({
+const chartColors = computed(() =>
+	resolveChartColors(props.chart_config.color, props.series[0]?.data ?? [])
+);
+
+const chartOptions = computed(() => ({
 	chart: {
 		offsetY: 15,
 		stacked: true,
@@ -28,7 +33,7 @@ const chartOptions = ref({
 			show: false,
 		},
 	},
-	colors: [...props.chart_config.color],
+	colors: chartColors.value,
 	dataLabels: {
 		offsetX: 20,
 		textAnchor: "start",
@@ -95,7 +100,7 @@ const chartOptions = ref({
 			},
 		},
 	},
-});
+}));
 
 const chartHeight = computed(() => {
 	return `${40 + props.series[0].data.length * 30}`;

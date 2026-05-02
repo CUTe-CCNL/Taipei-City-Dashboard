@@ -3,6 +3,7 @@
 <script setup>
 import { computed, ref } from "vue";
 import VueApexCharts from "vue3-apexcharts";
+import { resolveChartColors } from "../utilities/chartColors";
 
 const props = defineProps([
 	"chart_config",
@@ -40,7 +41,11 @@ const chartWidth = computed(() => {
 });
 
 
-const chartOptions = ref({
+const chartColors = computed(() =>
+	resolveChartColors(props.chart_config.color, props.series[0]?.data ?? [])
+);
+
+const chartOptions = computed(() => ({
 	chart: {
 		stacked: true,
 		zoom: {
@@ -61,7 +66,7 @@ const chartOptions = ref({
 				show: false,
 			}
 	},
-	colors: [...props.chart_config.color],
+	colors: chartColors.value,
 	dataLabels: {
 		enabled: props.chart_config.categories ? false : true,
 		offsetY: 20,
@@ -133,7 +138,7 @@ const chartOptions = ref({
 		},
 		type: "category",
 	},
-});
+}));
 
 const selectedIndex = ref(null);
 
@@ -270,4 +275,3 @@ function resetWidth() {
 	}
 }
 </style>
-
