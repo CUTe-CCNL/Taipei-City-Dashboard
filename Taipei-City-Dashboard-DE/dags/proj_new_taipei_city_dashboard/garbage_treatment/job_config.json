@@ -1,0 +1,28 @@
+{
+    "dag_infos": {
+        "dag_id": "stat_p_45_garbage",
+        "start_date": "2026-05-02",
+        "schedule_interval": "@daily",
+        "catchup": false,
+        "tags": [
+            "stat_p_45",
+            "waste",
+            "垃圾處理統計"
+        ],
+        "description": "統計雙北一般廢棄物產生量及處理狀況 (MOENV stat_p_45)",
+        "default_args": {
+            "owner": "airflow",
+            "email": ["DEFAULT_EMAIL_LIST"],
+            "email_on_retry": false,
+            "email_on_failure": true,
+            "retries": 1,
+            "retry_delay": 60
+        },
+        "ready_data_db": "postgres_default",
+        "ready_data_default_table": "garbage_treatment_stats",
+        "ready_data_history_table": "",
+        "raw_data_db": "postgres_default",
+        "raw_data_table": "",
+        "load_behavior": "replace"
+    }
+}
