@@ -24,6 +24,21 @@
 	--color-metrotaipei-background: #342b17;
 }
 
+:root.light-mode {
+	--color-background: #f5f5f7;
+	--color-border: #d8d8db;
+	--color-highlight: #5a9cf8;
+	--color-normal-text: #1a1a1a;
+	--color-complement-text: #5f5f60;
+	--color-component-background: #ffffff;
+	--color-overlay: rgba(0, 0, 0, 0.45);
+	--img-filter: invert(0);
+	--color-taipei: #1411AC;
+	--color-taipei-background: #d9e4ff;
+	--color-metrotaipei: #ac7811;
+	--color-metrotaipei-background: #f3e9d8;
+}
+
 .apexcharts-tooltip {
 	box-shadow: 0px 0px 5px black !important;
 }

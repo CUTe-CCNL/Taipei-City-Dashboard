@@ -1,8 +1,10 @@
 <!-- Developed by Taipei Urban Intelligence Center 2023-2024-->
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import VueApexCharts from "vue3-apexcharts";
+import { useThemeStore } from "../../store/themeStore";
+import { getThemeColor } from "../utilities/themeColors";
 
 const props = defineProps([
 	"chart_config",
@@ -20,6 +22,9 @@ const emits = defineEmits([
 	"clearByLayerFilter",
 	"fly"
 ]);
+
+const themeStore = useThemeStore();
+const chartRenderKey = ref(0);
 
 const parseSeries = computed(() => {
 	const newSeries = [];
@@ -50,7 +55,7 @@ const parseSeries = computed(() => {
 	return newSeries;
 });
 
-const chartOptions = ref({
+const chartOptions = computed(() => ({
 	chart: {
 		stacked: true,
 		toolbar: {
@@ -69,7 +74,7 @@ const chartOptions = ref({
 		offsetY: 10,
 	},
 	stroke: {
-		colors: ["#282a2c"],
+		colors: [getThemeColor("--color-component-background")],
 		show: true,
 		width: 2,
 	},
@@ -111,7 +116,15 @@ const chartOptions = ref({
 		show: false,
 		max: 1,
 	},
-});
+}));
+
+watch(
+	() => themeStore.theme,
+	() => {
+		chartRenderKey.value += 1;
+	},
+	{ immediate: true }
+);
 
 const selectedIndex = ref(null);
 
@@ -155,6 +168,7 @@ function handleDataSelection(_e, _chartContext, config) {
 <template>
   <div v-if="activeChart === 'IndicatorChart'">
     <VueApexCharts
+      :key="`indicator-${chartRenderKey}`"
       width="100%"
       height="260px"
       type="bar"

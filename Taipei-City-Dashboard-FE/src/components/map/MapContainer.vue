@@ -92,7 +92,7 @@ onMounted(() => {
           :style="{
             color: districtLayer
               ? 'var(--color-highlight)'
-              : 'var(--color-component-background)',
+              : 'var(--color-normal-text)',
           }"
           @click="toggleDistrictLayer"
         >
@@ -102,7 +102,7 @@ onMounted(() => {
           :style="{
             color: villageLayer
               ? 'var(--color-highlight)'
-              : 'var(--color-component-background)',
+              : 'var(--color-normal-text)',
           }"
           @click="toggleVillageLayer"
         >
@@ -114,7 +114,7 @@ onMounted(() => {
           :style="{
             color: villageLayer
               ? 'var(--color-highlight)'
-              : 'var(--color-component-background)',
+              : 'var(--color-normal-text)',
           }"
           class="hide-if-mobile"
           type="button"
@@ -303,22 +303,23 @@ onMounted(() => {
 		flex-direction: column;
 		row-gap: 4px;
 
-		button {
-			width: 1.75rem;
-			height: 1.75rem;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			border-radius: 50%;
-			background-color: white;
-			transition: color 0.2s;
-		}
+			button {
+				width: 1.75rem;
+				height: 1.75rem;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				border-radius: 50%;
+				border: 1px solid var(--color-border);
+				background-color: var(--color-component-background);
+				transition: color 0.2s;
+			}
 
-		span {
-			color: var(--color-component-background);
-			font-size: 1.2rem;
-			font-family: var(--font-icon);
-		}
+			span {
+				color: var(--color-normal-text);
+				font-size: 1.2rem;
+				font-family: var(--font-icon);
+			}
 
 		&-loading {
 			height: 2rem;

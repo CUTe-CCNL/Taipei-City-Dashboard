@@ -31,7 +31,7 @@ defineEmits(["sort"]);
         <span
           :style="{
             color:
-              mode === 'asc' ? 'var(--color-highlight)' : 'white',
+              mode === 'asc' ? 'var(--color-highlight)' : 'var(--color-normal-text)',
           }"
         >arrow_drop_up</span>
         <span
@@ -39,7 +39,7 @@ defineEmits(["sort"]);
             color:
               mode === 'desc'
                 ? 'var(--color-highlight)'
-                : 'white',
+                : 'var(--color-normal-text)',
           }"
         >arrow_drop_down</span>
       </div>

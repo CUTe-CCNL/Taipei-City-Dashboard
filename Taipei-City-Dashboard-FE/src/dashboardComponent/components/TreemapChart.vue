@@ -1,9 +1,11 @@
 <!-- Developed by Taipei Urban Intelligence Center 2023-2024-->
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import VueApexCharts from "vue3-apexcharts";
+import { useThemeStore } from "../../store/themeStore";
 import { resolveChartColors } from "../utilities/chartColors";
+import { getThemeColor } from "../utilities/themeColors";
 
 const props = defineProps([
 	"chart_config",
@@ -21,6 +23,9 @@ const emits = defineEmits([
 	"clearByLayerFilter",
 	"fly"
 ]);
+
+const themeStore = useThemeStore();
+const chartRenderKey = ref(0);
 
 const MAX_ITEMS = 20;
 
@@ -76,7 +81,7 @@ const chartOptions = computed(() => ({
 		},
 	},
 	stroke: {
-		colors: ["#282a2c"],
+		colors: [getThemeColor("--color-component-background")],
 		show: true,
 		width: 2,
 	},
@@ -114,6 +119,14 @@ const chartOptions = computed(() => ({
 		type: "category",
 	},
 }));
+
+watch(
+	() => themeStore.theme,
+	() => {
+		chartRenderKey.value += 1;
+	},
+	{ immediate: true }
+);
 
 const sum = computed(() => {
 	let sum = 0;
@@ -176,6 +189,7 @@ function handleDataSelection(_e, _chartContext, config) {
       <h6>{{ sum }} {{ chart_config.unit }}</h6>
     </div>
     <VueApexCharts
+      :key="`treemap-${chartRenderKey}`"
       width="100%"
       type="treemap"
       :options="chartOptions"

@@ -1,8 +1,10 @@
 <!-- Developed by Taipei Urban Intelligence Center 2023-2024-->
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import VueApexCharts from "vue3-apexcharts";
+import { useThemeStore } from "../../store/themeStore";
+import { getThemeColor } from "../utilities/themeColors";
 
 const props = defineProps([
 	"chart_config",
@@ -21,7 +23,14 @@ const emits = defineEmits([
 	"fly"
 ]);
 
-const chartOptions = ref({
+const themeStore = useThemeStore();
+const chartRenderKey = ref(0);
+const componentBackgroundColor = computed(() => {
+	themeStore.theme;
+	return getThemeColor("--color-component-background");
+});
+
+const chartOptions = computed(() => ({
 	chart: {
 		stacked: true,
 		stackType: "100%",
@@ -50,7 +59,7 @@ const chartOptions = ref({
 		},
 	},
 	stroke: {
-		colors: ["#282a2c"],
+		colors: [componentBackgroundColor.value],
 		show: true,
 		width: 2,
 	},
@@ -90,11 +99,19 @@ const chartOptions = ref({
 		},
 		type: "category",
 	},
-});
+}));
 
 const chartHeight = computed(() => {
 	return `${50 + props.series[0].data.length * 30}`;
 });
+
+watch(
+	() => themeStore.theme,
+	() => {
+		chartRenderKey.value += 1;
+	},
+	{ immediate: true }
+);
 
 const selectedIndex = ref(null);
 
@@ -140,6 +157,7 @@ function handleDataSelection(_e, _chartContext, config) {
     v-if="activeChart === 'BarPercentChart'"
   >
     <VueApexCharts
+      :key="`bar-percent-${chartRenderKey}`"
       type="bar"
       width="100%"
       :height="chartHeight"

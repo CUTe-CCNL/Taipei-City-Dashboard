@@ -257,9 +257,9 @@ onMounted(() => {
 				color: var(--color-complement-text);
 			}
 
-			&:checked + label {
-				color: white;
-			}
+				&:checked + label {
+					color: var(--color-normal-text);
+				}
 
 			&:hover + label {
 				color: var(--color-highlight);

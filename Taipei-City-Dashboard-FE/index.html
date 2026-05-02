@@ -38,6 +38,15 @@ Testing: Jack Huang (Data Scientist), Ian Huang (Data Analysis Intern)
 			gtag("js", new Date());
 			gtag("config", "G-0KD9XLZ7W3");
 		</script>
+		<script>
+			try {
+				if (localStorage.getItem("theme") === "light") {
+					document.documentElement.classList.add("light-mode");
+				}
+			} catch {
+				// localStorage may be blocked in privacy modes.
+			}
+		</script>
 	</head>
 	<body>
 		<noscript>

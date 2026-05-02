@@ -53,14 +53,14 @@ defineProps({
 		font-size: var(--font-s);
 	}
 
-	&-fill {
-		background-color: var(--color-complement-text);
+		&-fill {
+			background-color: var(--color-complement-text);
 
-		span,
-		p {
-			color: white;
+			span,
+			p {
+				color: var(--color-normal-text);
+			}
 		}
-	}
 
 	&-small {
 		min-height: var(--font-ms);
@@ -81,6 +81,7 @@ defineProps({
 
 			&.taipei {
 				background-color: var(--color-taipei);
+
 			}
 			&.metrotaipei {
 				background-color: var(--color-metrotaipei);

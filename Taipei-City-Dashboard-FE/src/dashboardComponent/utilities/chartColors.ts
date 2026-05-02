@@ -1,4 +1,12 @@
-const FALLBACK_COLOR = "#848c94";
+function getFallbackColor() {
+	if (
+		typeof document !== "undefined" &&
+		document.documentElement.classList.contains("light-mode")
+	) {
+		return "#6a6f76";
+	}
+	return "#848c94";
+}
 
 type ChartDataPoint = {
 	x: any;
@@ -33,8 +41,10 @@ export function resolveChartColors(
 	colorConfig: string[],
 	data: ChartDataPoint[]
 ): string[] {
+	const fallbackColor = getFallbackColor();
+
 	if (!Array.isArray(colorConfig) || colorConfig.length === 0) {
-		return data.map(() => FALLBACK_COLOR);
+		return data.map(() => fallbackColor);
 	}
 
 	const mode = colorConfig[0];
@@ -48,12 +58,12 @@ export function resolveChartColors(
 		return data.map((item) => {
 			const value = Number(item?.y);
 			if (!Number.isFinite(value)) {
-				return FALLBACK_COLOR;
+				return fallbackColor;
 			}
 			const matchedRule = rules.find(
 				(rule) => value >= rule.min && value < rule.max
 			);
-			return matchedRule?.color ?? FALLBACK_COLOR;
+			return matchedRule?.color ?? fallbackColor;
 		});
 	}
 
@@ -71,7 +81,7 @@ export function resolveChartColors(
 
 		return data.map((item) => {
 			const key = String(item?.x ?? "");
-			return labelMap.get(key) ?? FALLBACK_COLOR;
+			return labelMap.get(key) ?? fallbackColor;
 		});
 	}
 

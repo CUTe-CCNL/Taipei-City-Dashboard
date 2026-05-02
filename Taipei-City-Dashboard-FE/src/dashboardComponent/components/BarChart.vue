@@ -1,8 +1,10 @@
 <!-- Developed by Taipei Urban Intelligence Center 2023-2024-->
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import VueApexCharts from "vue3-apexcharts";
+import { useThemeStore } from "../../store/themeStore";
 import { resolveChartColors } from "../utilities/chartColors";
+import { getThemeColor } from "../utilities/themeColors";
 
 const props = defineProps([
 	"chart_config",
@@ -21,9 +23,17 @@ const emits = defineEmits([
 	"fly"
 ]);
 
+const themeStore = useThemeStore();
+const chartRenderKey = ref(0);
+
 const chartColors = computed(() =>
 	resolveChartColors(props.chart_config.color, props.series[0]?.data ?? [])
 );
+
+const componentBackgroundColor = computed(() => {
+	themeStore.theme;
+	return getThemeColor("--color-component-background");
+});
 
 const chartOptions = computed(() => ({
 	chart: {
@@ -55,7 +65,7 @@ const chartOptions = computed(() => ({
 		},
 	},
 	stroke: {
-		colors: ["#282a2c"],
+		colors: [componentBackgroundColor.value],
 		show: true,
 		width: 0,
 	},
@@ -101,6 +111,14 @@ const chartOptions = computed(() => ({
 		},
 	},
 }));
+
+watch(
+	() => themeStore.theme,
+	() => {
+		chartRenderKey.value += 1;
+	},
+	{ immediate: true }
+);
 
 const chartHeight = computed(() => {
 	return `${40 + props.series[0].data.length * 30}`;
@@ -148,6 +166,7 @@ function handleDataSelection(_e, _chartContext, config) {
 <template>
   <div v-if="activeChart === 'BarChart'">
     <VueApexCharts
+      :key="`bar-${chartRenderKey}`"
       width="100%"
       :height="chartHeight"
       type="bar"

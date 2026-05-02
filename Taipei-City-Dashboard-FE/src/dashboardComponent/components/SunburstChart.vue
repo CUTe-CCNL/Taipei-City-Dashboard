@@ -3,7 +3,9 @@
 <script setup>
 import { computed, ref, watch } from "vue";
 import VueApexCharts from "vue3-apexcharts";
+import { useThemeStore } from "../../store/themeStore";
 import { resolveChartColors } from "../utilities/chartColors";
+import { getThemeColor } from "../utilities/themeColors";
 
 /**
  * Props:
@@ -88,8 +90,10 @@ const emits = defineEmits([
 	"fly",
 ]);
 
+const themeStore = useThemeStore();
 const selectedKey = ref(null);
 const warnedDepth = ref(null);
+const chartRenderKey = ref(0);
 
 const unitSuffix = computed(() => {
 	if (!props.chart_config?.unit) {
@@ -450,6 +454,11 @@ const centerSummary = computed(() => ({
 	value: flattenedChart.value.rootValue,
 }));
 
+const componentBackgroundColor = computed(() => {
+	themeStore.theme;
+	return getThemeColor("--color-component-background");
+});
+
 const renderedLevels = computed(() => {
 	if (!Array.isArray(levels.value) || levels.value.length === 0) {
 		return [];
@@ -484,7 +493,7 @@ const renderedLevels = computed(() => {
 					enabled: false,
 				},
 				stroke: {
-					colors: ["#282a2c"],
+					colors: [componentBackgroundColor.value],
 					width: 2,
 				},
 				plotOptions: {
@@ -519,6 +528,14 @@ const renderedLevels = computed(() => {
 		};
 	});
 });
+
+watch(
+	() => themeStore.theme,
+	() => {
+		chartRenderKey.value += 1;
+	},
+	{ immediate: true }
+);
 
 function handleDataSelection(level, config) {
 	if (!props.map_filter || !props.map_filter_on) {
@@ -582,6 +599,7 @@ function handleDataSelection(level, config) {
         :style="level.layerStyle"
       >
         <VueApexCharts
+          :key="`sunburst-${level.depth}-${chartRenderKey}`"
           width="100%"
           height="100%"
           type="donut"

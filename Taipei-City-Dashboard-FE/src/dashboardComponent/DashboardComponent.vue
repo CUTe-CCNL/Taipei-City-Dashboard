@@ -657,9 +657,9 @@ button:hover {
 				);
 				transition: color 0.2s;
 
-				&:hover {
-					color: white;
-				}
+					&:hover {
+						color: var(--color-normal-text);
+					}
 			}
 
 			button.isfavorite span {
@@ -714,29 +714,35 @@ button:hover {
 			margin: 0 auto;
 			transform: translateX(-15%);
 
-			&-button {
-				margin: 0 2px;
-				padding: 4px 4px;
-				border-radius: 5px;
-				background-color: rgb(77, 77, 77);
-				opacity: 0.6;
-				color: var(--color-complement-text);
-				font-size: var(--font-s);
-				text-align: center;
-				transition: color 0.2s, opacity 0.2s;
-				user-select: none;
-	
-				&:hover {
-					opacity: 1;
-					color: white;
+				&-button {
+					margin: 0 2px;
+					padding: 4px 4px;
+					border-radius: 5px;
+					border: 1px solid var(--color-border);
+					background-color: var(--color-component-background);
+					color: var(--color-normal-text);
+					font-size: var(--font-s);
+					text-align: center;
+					transition: color 0.2s, opacity 0.2s, border-color 0.2s,
+						background-color 0.2s;
+					user-select: none;
+		
+					&:not(.dashboardcomponent-control-group-active):hover {
+						border-color: var(--color-highlight);
+						color: var(--color-highlight);
+					}
+				}
+			
+				&-active {
+					border-color: var(--color-highlight);
+					background-color: var(--color-highlight);
+					color: #1a1a1a;
+
+					&:hover {
+						color: #1a1a1a;
+					}
 				}
 			}
-	
-			&-active {
-				background-color: var(--color-complement-text);
-				color: white;
-			}
-		}
 
 		.selectBtn {
 			background-color: var(--color-component-background);

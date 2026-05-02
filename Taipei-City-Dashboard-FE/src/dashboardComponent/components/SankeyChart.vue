@@ -1,7 +1,9 @@
 <script setup>
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import ApexSankey from "apexsankey";
+import { useThemeStore } from "../../store/themeStore";
 import { resolveChartColors } from "../utilities/chartColors";
+import { getThemeColor } from "../utilities/themeColors";
 
 const CHART_NAME = "SankeyChart";
 
@@ -22,6 +24,7 @@ const emits = defineEmits([
 	"fly",
 ]);
 
+const themeStore = useThemeStore();
 const chartContainer = ref(null);
 const sankeyInstance = ref(null);
 const resizeObserver = ref(null);
@@ -374,9 +377,9 @@ function renderChart() {
 		enableToolbar: false,
 		enableTooltip: true,
 		tooltipId,
-		tooltipTheme: "dark",
+		tooltipTheme: themeStore.theme,
 		canvasStyle: "border: none; box-sizing: border-box;",
-		fontColor: "var(--color-normal-text)",
+		fontColor: getThemeColor("--color-normal-text"),
 		fontWeight: "600",
 		fontSize: "16px",
 		onNodeClick: handleNodeClick,
@@ -471,6 +474,18 @@ watch(
 		requestRender();
 	},
 	{ deep: true }
+);
+
+watch(
+	() => themeStore.theme,
+	() => {
+		if (props.activeChart !== CHART_NAME) {
+			return;
+		}
+		selectedTitle.value = null;
+		requestRender();
+	},
+	{ immediate: true }
 );
 
 onMounted(() => {

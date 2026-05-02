@@ -1,9 +1,11 @@
 <!-- Developed by Taipei Urban Intelligence Center 2023-2024-->
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import VueApexCharts from "vue3-apexcharts";
+import { useThemeStore } from "../../store/themeStore";
 import { resolveChartColors } from "../utilities/chartColors";
+import { getThemeColor } from "../utilities/themeColors";
 
 const props = defineProps([
 	"chart_config",
@@ -21,6 +23,9 @@ const emits = defineEmits([
 	"clearByLayerFilter",
 	"fly"
 ]);
+
+const themeStore = useThemeStore();
+const chartRenderKey = ref(0);
 
 // How many data points to show before summing all remaining points into "other"
 const steps = ref(100);
@@ -69,9 +74,19 @@ const chartColors = computed(() => {
 	const colors = resolveChartColors(props.chart_config.color, parsedData.value);
 	const otherIndex = parsedLabels.value.indexOf("其他");
 	if (otherIndex !== -1) {
-		colors[otherIndex] = "#848c94";
+		colors[otherIndex] = themeStore.theme === "light" ? "#6a6f76" : "#848c94";
 	}
 	return colors;
+});
+
+const componentBackgroundColor = computed(() => {
+	themeStore.theme;
+	return getThemeColor("--color-component-background");
+});
+
+const labelTextColor = computed(() => {
+	themeStore.theme;
+	return getThemeColor("--color-normal-text");
 });
 
 // chartOptions needs to be in the bottom since it uses computed data
@@ -81,6 +96,9 @@ const chartOptions = computed(() => ({
 	},
 	colors: chartColors.value,
 	dataLabels: {
+		style: {
+			colors: parsedLabels.value.map(() => labelTextColor.value),
+		},
 		formatter: function (
 			_val,
 			{ seriesIndex, w }
@@ -104,7 +122,7 @@ const chartOptions = computed(() => ({
 		},
 	},
 	stroke: {
-		colors: ["#282a2c"],
+		colors: [componentBackgroundColor.value],
 		show: true,
 		width: 3,
 	},
@@ -130,6 +148,14 @@ const chartOptions = computed(() => ({
 		},
 	},
 }));
+
+watch(
+	() => themeStore.theme,
+	() => {
+		chartRenderKey.value += 1;
+	},
+	{ immediate: true }
+);
 
 const selectedIndex = ref(null);
 
@@ -176,6 +202,7 @@ function handleDataSelection(_e, _chartContext, config) {
     class="donutchart"
   >
     <VueApexCharts
+      :key="`donut-${chartRenderKey}`"
       width="100%"
       type="donut"
       :options="chartOptions"

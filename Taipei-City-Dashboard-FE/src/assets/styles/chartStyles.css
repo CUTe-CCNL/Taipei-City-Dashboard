@@ -1,5 +1,17 @@
 /* Cleaned */
 
+:root.light-mode {
+	--color-background: #f5f5f7;
+	--color-border: #d8d8db;
+	--color-highlight: #5a9cf8;
+	--color-normal-text: #1a1a1a;
+	--color-complement-text: #5f5f60;
+	--color-component-background: #ffffff;
+	--color-overlay: rgba(0, 0, 0, 0.45);
+	--color-taipei: #1411AC;
+	--color-metrotaipei: #ac7811;
+}
+
 .apexcharts-tooltip {
 	box-shadow: 0px 0px 5px black !important;
 }

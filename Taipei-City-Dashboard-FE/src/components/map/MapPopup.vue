@@ -165,17 +165,17 @@
 			transition: color 0.2s, opacity 0.2s;
 			user-select: none;
 
-			&:hover {
-				opacity: 0.8;
-				color: white;
+				&:hover {
+					opacity: 0.8;
+					color: var(--color-normal-text);
+				}
+			}
+
+			&-active button {
+				opacity: 1;
+				color: var(--color-normal-text);
 			}
 		}
-
-		&-active button {
-			opacity: 1;
-			color: white;
-		}
-	}
 
 	&-content {
 		width: 100%;

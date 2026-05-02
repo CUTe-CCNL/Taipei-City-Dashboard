@@ -245,12 +245,12 @@ watch(
 
 <style lang="scss" scoped>
 /* === 變數設定 === */
-$bg-dark: #090909;
-$panel-bg: #494b4e;
-$card-bg: #282a2c;
-$border-color: #888787;
-$input-bg: #d9d9d9;
-$white: #ffffff;
+$bg-dark: var(--color-background);
+$panel-bg: var(--color-border);
+$card-bg: var(--color-component-background);
+$border-color: var(--color-border);
+$input-bg: var(--color-component-background);
+$text-color: var(--color-normal-text);
 $scroll-thumb-hover: #ababab;
 $radius-10: 10px;
 $radius-15: 15px;
@@ -272,7 +272,7 @@ $radius-20: 20px;
 	}
 
 	&::-webkit-scrollbar-thumb {
-		background: $white;
+		background: $text-color;
 		border-radius: 8px;
 	}
 
@@ -296,13 +296,13 @@ $radius-20: 20px;
 		background: $panel-bg;
 		border-bottom: 3px solid $border-color;
 
-		h3 {
-			font-size: 18px;
-			font-weight: 700;
-			color: $white;
-			margin: 0;
+			h3 {
+				font-size: 18px;
+				font-weight: 700;
+				color: $text-color;
+				margin: 0;
+			}
 		}
-	}
 
 	.chat-area {
 		flex: 1;
@@ -320,7 +320,7 @@ $radius-20: 20px;
 
 		// 置頂訊息
 		.sticky-message {
-			border: 1px solid #ffffff;
+			border: 1px solid $text-color;
 			position: sticky;
 			top: 0;
 			z-index: 10;
@@ -345,7 +345,7 @@ $radius-20: 20px;
 				border: none;
 				font-size: 14px;
 				cursor: pointer;
-				color: #ffffff;
+				color: $text-color;
 			}
 		}
 
@@ -395,7 +395,7 @@ $radius-20: 20px;
 
 						.relation-table th,
 						.relation-table td {
-							border: 1px solid #ccc;
+							border: 1px solid var(--color-border);
 							text-align: left;
 							padding: 0px 8px;
 							line-height: 1.1;
@@ -413,12 +413,12 @@ $radius-20: 20px;
 					}
 
 					.message--bubble {
-						border: 1px solid $white;
+						border: 1px solid $text-color;
 						border-radius: $radius-10;
 						background: $card-bg;
 
 						p {
-							color: $white;
+							color: $text-color;
 							white-space: pre-line;
 							margin: 0;
 							padding-top: 8px;
@@ -434,10 +434,10 @@ $radius-20: 20px;
 						gap: 0.5rem;
 						overflow-x: auto;
 
-						button {
-							flex-shrink: 0;
-							background: $panel-bg;
-							color: $white;
+							button {
+								flex-shrink: 0;
+								background: $panel-bg;
+								color: $text-color;
 							font-size: 14px;
 							padding: 0.5rem 1rem;
 							border-radius: $radius-15;
@@ -468,15 +468,15 @@ $radius-20: 20px;
 			align-items: center;
 			gap: 0.5rem;
 
-			input[type="text"] {
-				background: $white;
-				height: 35px;
+				input[type="text"] {
+					background: $input-bg;
+					height: 35px;
 				width: 100%;
 				border-radius: 20px;
 				padding: 0 1rem;
 				border: none;
 				outline: none;
-				color: black;
+					color: var(--color-normal-text);
 
 				&:disabled {
 					opacity: 0.65;
@@ -512,13 +512,13 @@ $radius-20: 20px;
 	gap: 0.3rem;
 	padding: 10px 16px;
 
-	.typing-dot {
+		.typing-dot {
 		width: 8px;
 		height: 8px;
 		border-radius: 50%;
-		background-color: rgba(255, 255, 255, 0.95);
-		animation: dot-bounce 1.1s infinite ease-in-out;
-	}
+			background-color: var(--color-normal-text);
+			animation: dot-bounce 1.1s infinite ease-in-out;
+		}
 
 	.typing-dot:nth-child(2) {
 		animation-delay: 0.15s;
