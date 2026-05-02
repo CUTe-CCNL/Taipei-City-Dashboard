@@ -25,7 +25,7 @@ def _transfer(**kwargs):
     history_table = dag_infos.get("ready_data_history_table")
 
     # --- Extract：抓取 CWA API ---
-    raw_api_key = Variable.get("CWA_API_KEY", "rdec-key-123-45678-011121314")
+    raw_api_key = Variable.get("CWA_API_KEY")
     api_key = raw_api_key.strip()
     
     url = 'https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0002-001'
