@@ -9,7 +9,6 @@ export const chartTypes: chartType = {
 	BarPercentChart: "長條圖(%)", // V
 	TreemapChart: "矩形圖", // V
 	SankeyChart: "桑基圖", // V
-	SunburstChart: "旭日圖", // V
 	DistrictChart: "行政區圖", // V
 	MetroChart: "捷運行駛圖", // V
 	TimelineSeparateChart: "折線圖(比較)", // V
