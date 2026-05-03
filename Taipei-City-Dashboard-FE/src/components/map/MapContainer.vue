@@ -8,6 +8,7 @@ import { useAuthStore } from "../../store/authStore";
 import { useContentStore } from "../../store/contentStore";
 import { useDialogStore } from "../../store/dialogStore";
 import { useMapStore } from "../../store/mapStore";
+import { useThemeStore } from "../../store/themeStore";
 
 import AddViewPoint from "../dialogs/AddViewPoint.vue";
 import MobileLayers from "../dialogs/MobileLayers.vue";
@@ -19,6 +20,7 @@ const authStore = useAuthStore();
 const mapStore = useMapStore();
 const dialogStore = useDialogStore();
 const contentStore = useContentStore();
+const themeStore = useThemeStore();
 const route = useRoute();
 
 const districtLayer = ref(false);
@@ -71,6 +73,13 @@ watch(
 			? mapStore.updateMapViewForCity(newValue)
 			: mapStore.updateMapViewForCity('default');
 	}
+);
+
+watch(
+	() => themeStore.theme,
+	(theme) => {
+		mapStore.switchBaseMapTheme(theme);
+	},
 );
 
 onMounted(() => {

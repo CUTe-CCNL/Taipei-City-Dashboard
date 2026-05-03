@@ -25,6 +25,7 @@ import { point, distance } from "@turf/turf";
 // Other Stores
 import { useAuthStore } from "./authStore";
 import { useDialogStore } from "./dialogStore";
+import { useThemeStore } from "./themeStore";
 
 // Vue Components
 import MapPopup from "../components/map/MapPopup.vue";
@@ -57,6 +58,13 @@ import {
 	getCrowdColor,
 	mrtLineColor,
 } from "../assets/utilityFunctions/getThematicColor.js";
+
+const normalizeTheme = (theme) => (theme === "light" ? "light" : "dark");
+
+const getMapStyleByTheme = (theme) =>
+	normalizeTheme(theme) === "light"
+		? "mapbox://styles/mapbox/light-v11"
+		: mapStyle;
 
 export const useMapStore = defineStore("map", {
 	state: () => ({
@@ -95,6 +103,8 @@ export const useMapStore = defineStore("map", {
 		layerUpdateTime: {
 			// [layerId]: Date
 		},
+		baseMapTheme: "dark",
+		isSwitchingTheme: false,
 	}),
 	actions: {
 		/* Initialize Mapbox */
@@ -103,11 +113,14 @@ export const useMapStore = defineStore("map", {
 			this.map = null;
 			this.marker = null;
 			this.overlay = null;
+			const themeStore = useThemeStore();
+			const activeTheme = normalizeTheme(themeStore.theme);
+			this.baseMapTheme = activeTheme;
 			const MAPBOXTOKEN = import.meta.env.VITE_MAPBOXTOKEN;
 			mapboxGl.accessToken = MAPBOXTOKEN;
 			this.map = new mapboxGl.Map({
 				...MapObjectConfig,
-				style: mapStyle,
+				style: getMapStyleByTheme(activeTheme),
 			});
 			this.marker = new mapboxGl.Marker();
 			const geoLocate = new mapboxGl.GeolocateControl({
@@ -169,6 +182,89 @@ export const useMapStore = defineStore("map", {
 			});
 
 			return geoLocate;
+		},
+		switchBaseMapTheme(theme) {
+			const nextTheme = normalizeTheme(theme);
+			if (!this.map) {
+				this.baseMapTheme = nextTheme;
+				return;
+			}
+			if (this.isSwitchingTheme || this.baseMapTheme === nextTheme) {
+				return;
+			}
+
+			this.isSwitchingTheme = true;
+			this.baseMapTheme = nextTheme;
+
+			const visibleLayerConfigs = this.currentVisibleLayers
+				.map((layerId) => this.mapConfigs[layerId])
+				.filter(Boolean)
+				.map((config) => ({ ...config }));
+
+			const districtVisibility = this.map.getLayer("metrotaipei_town")
+				? this.map.getLayoutProperty("metrotaipei_town", "visibility")
+				: "none";
+			const villageVisibility = this.map.getLayer("metrotaipei_village")
+				? this.map.getLayoutProperty(
+					"metrotaipei_village",
+					"visibility",
+				)
+				: "none";
+
+			this.removePopup();
+			this.stopAnimation();
+			this.loadingLayers = [];
+			this.currentLayers = [];
+			this.currentVisibleLayers = [];
+			this.deckGlLayer = {};
+			this.customLayers = {};
+			this.prevMrtCars = [];
+			this.layerUpdateTime = {};
+			this.overlay?.setProps({ layers: [] });
+
+			this.map.once("style.load", () => {
+				if (!this.map) return;
+
+				this.initializeBasicLayers();
+
+				if (districtVisibility === "visible") {
+					this.map.once("idle", () => {
+						if (this.map?.getLayer("metrotaipei_town")) {
+							this.map.setLayoutProperty(
+								"metrotaipei_town",
+								"visibility",
+								"visible",
+							);
+						}
+					});
+				}
+
+				if (villageVisibility === "visible") {
+					this.map.once("idle", () => {
+						if (this.map?.getLayer("metrotaipei_village")) {
+							this.map.setLayoutProperty(
+								"metrotaipei_village",
+								"visibility",
+								"visible",
+							);
+						}
+					});
+				}
+
+				visibleLayerConfigs.forEach((layerConfig) => {
+					if (!layerConfig?.layerId) return;
+					this.loadingLayers.push(layerConfig.layerId);
+					if (layerConfig.source === "geojson") {
+						this.fetchLocalGeoJson(layerConfig);
+					} else if (layerConfig.source === "raster") {
+						this.addRasterSource(layerConfig);
+					}
+				});
+
+				this.isSwitchingTheme = false;
+			});
+
+			this.map.setStyle(getMapStyleByTheme(nextTheme));
 		},
 		// 2. Adds three basic layers to the map (Taipei District, Taipei Village labels, and Taipei 3D Buildings)
 		// Due to performance concerns, Taipei 3D Buildings won't be added in the mobile version
