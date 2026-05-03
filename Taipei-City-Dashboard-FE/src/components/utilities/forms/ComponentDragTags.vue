@@ -46,35 +46,36 @@ const handleDragEnd = () => {
 </script>
 
 <template>
-  <div
-    v-for="(tag, index) in tags"
-    :key="`${tag.index}-${tag.city}`"
-    :class="{
-      componentdragtag: true,
-      'componentdragtag-dragging': index === draggedItem,
-    }"
-    :style="{
-      backgroundColor: colorData ? tag : '',
-      textShadow: colorData ? '0 0 2px black' : '',
-    }"
-    :draggable="true"
-    @dragstart="(event) => handleDragStart(event, index)"
-    @dragover="(event) => handleDragOver(event, index)"
-    @dragend="handleDragEnd"
-  >
-    <h3>{{ tag.id }}</h3>
-    <p>{{ tag.name }}</p>
-    <button
-      :style="{ backgroundColor: colorData ? tag : '' }"
-      @click="$emit('deletetag', index)"
-    >
-      <span
-        :style="{
-          textShadow: colorData ? '0 0 2px black' : '',
-        }"
-      >cancel</span>
-    </button>
-  </div>
+	<div
+		v-for="(tag, index) in tags"
+		:key="`${tag.index}-${tag.city}`"
+		:class="{
+			componentdragtag: true,
+			'componentdragtag-dragging': index === draggedItem,
+		}"
+		:style="{
+			backgroundColor: colorData ? tag : '',
+			textShadow: colorData ? '0 0 2px black' : '',
+		}"
+		:draggable="true"
+		@dragstart="(event) => handleDragStart(event, index)"
+		@dragover="(event) => handleDragOver(event, index)"
+		@dragend="handleDragEnd"
+	>
+		<h3>{{ tag.id }}</h3>
+		<p>{{ tag.name }}</p>
+		<button
+			:style="{ backgroundColor: colorData ? tag : '' }"
+			@click="$emit('deletetag', index)"
+		>
+			<span
+				:style="{
+					textShadow: colorData ? '0 0 2px black' : '',
+				}"
+				>cancel</span
+			>
+		</button>
+	</div>
 </template>
 
 <style scoped lang="scss">
@@ -87,7 +88,7 @@ const handleDragEnd = () => {
 	justify-content: center;
 	padding: 4px;
 	border-radius: 5px;
-	background-color: var(--color-complement-text);
+	background-color: var(--color-highlight);
 	color: #ffffff;
 	white-space: nowrap;
 	overflow: hidden;
@@ -107,7 +108,7 @@ const handleDragEnd = () => {
 		top: 3px;
 		right: 2px;
 		padding: 2px 2px 0;
-		background-color: var(--color-complement-text);
+		background-color: var(--color-highlight);
 		color: inherit;
 
 		span {
