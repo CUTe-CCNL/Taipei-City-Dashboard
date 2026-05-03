@@ -1,6 +1,5 @@
 <script setup>
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import ApexSankey from "apexsankey";
 import { useThemeStore } from "../../store/themeStore";
 import { resolveChartColors } from "../utilities/chartColors";
 import { getThemeColor } from "../utilities/themeColors";
@@ -26,26 +25,33 @@ const emits = defineEmits([
 
 const themeStore = useThemeStore();
 const chartContainer = ref(null);
-const sankeyInstance = ref(null);
 const resizeObserver = ref(null);
 const selectedTitle = ref(null);
 const renderFrameId = ref(null);
-const tooltipId = `sankey-tooltip-${Math.random().toString(36).slice(2, 10)}`;
+const svgWidth = ref(0);
+const svgHeight = ref(0);
+const renderedNodes = ref([]);
+const renderedLinks = ref([]);
+
+const tooltipState = ref({
+	visible: false,
+	left: 0,
+	top: 0,
+	title: "",
+	value: "",
+});
+
+const MIN_CHART_WIDTH = 320;
+const MIN_CHART_HEIGHT = 220;
+const NODE_PADDING = 12;
+const MIN_NODE_HEIGHT = 8;
+const NODE_CORNER_RADIUS = 6;
 
 function getUnitSuffix() {
 	if (!props.chart_config?.unit) {
 		return "";
 	}
-	return ` ${escapeHtml(props.chart_config.unit)}`;
-}
-
-function escapeHtml(content) {
-	return String(content ?? "")
-		.replace(/&/g, "&amp;")
-		.replace(/</g, "&lt;")
-		.replace(/>/g, "&gt;")
-		.replace(/"/g, "&quot;")
-		.replace(/'/g, "&#39;");
+	return ` ${String(props.chart_config.unit)}`;
 }
 
 function formatValue(value) {
@@ -295,37 +301,376 @@ function buildGraphData() {
 	};
 }
 
+function parseColor(rawColor) {
+	const color = String(rawColor ?? "").trim().toLowerCase();
+	if (!color) {
+		return null;
+	}
+
+	const shortHexMatch = color.match(/^#([0-9a-f]{3})$/i);
+	if (shortHexMatch) {
+		const [r, g, b] = shortHexMatch[1].split("");
+		return {
+			r: parseInt(r + r, 16),
+			g: parseInt(g + g, 16),
+			b: parseInt(b + b, 16),
+		};
+	}
+
+	const longHexMatch = color.match(/^#([0-9a-f]{6})$/i);
+	if (longHexMatch) {
+		return {
+			r: parseInt(longHexMatch[1].slice(0, 2), 16),
+			g: parseInt(longHexMatch[1].slice(2, 4), 16),
+			b: parseInt(longHexMatch[1].slice(4, 6), 16),
+		};
+	}
+
+	const rgbMatch = color.match(
+		/^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})/i
+	);
+	if (!rgbMatch) {
+		return null;
+	}
+
+	return {
+		r: Math.min(255, Number(rgbMatch[1])),
+		g: Math.min(255, Number(rgbMatch[2])),
+		b: Math.min(255, Number(rgbMatch[3])),
+	};
+}
+
+function withAlpha(rawColor, alpha, fallbackColor = "#5a9cf8") {
+	const color = parseColor(rawColor) || parseColor(fallbackColor);
+	if (!color) {
+		return `rgba(90, 156, 248, ${alpha})`;
+	}
+	return `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
+}
+
+function createBandPath(x0, y0, x1, y1, thickness) {
+	const curveOffset = Math.max(Math.abs(x1 - x0) * 0.45, 12);
+	return [
+		`M ${x0} ${y0}`,
+		`C ${x0 + curveOffset} ${y0}, ${x1 - curveOffset} ${y1}, ${x1} ${y1}`,
+		`L ${x1} ${y1 + thickness}`,
+		`C ${x1 - curveOffset} ${y1 + thickness}, ${x0 + curveOffset} ${
+			y0 + thickness
+		}, ${x0} ${y0 + thickness}`,
+		"Z",
+	].join(" ");
+}
+
+function buildSankeyLayout(graphData, width, height) {
+	const baseNodeColor = getThemeColor("--color-highlight") || "#5a9cf8";
+	const fallbackLinkColor = getThemeColor("--color-complement-text") || "#888787";
+
+	const nodes = graphData.nodes.map((node, index) => ({
+		id: node.id,
+		title: node.title,
+		color: node.color || baseNodeColor,
+		index,
+		incoming: [],
+		outgoing: [],
+		inValue: 0,
+		outValue: 0,
+		value: 0,
+		column: 0,
+		x: 0,
+		y: 0,
+		height: 0,
+		scale: 0,
+		labelX: 0,
+		labelY: 0,
+		labelAnchor: "start",
+	}));
+
+	const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+	const links = [];
+
+	graphData.edges.forEach((edge, index) => {
+		const sourceNode = nodeMap.get(edge.source);
+		const targetNode = nodeMap.get(edge.target);
+		const value = Number(edge.value);
+		if (!sourceNode || !targetNode || !Number.isFinite(value) || value <= 0) {
+			return;
+		}
+
+		const link = {
+			id: `${sourceNode.id}->${targetNode.id}:${index}`,
+			source: sourceNode,
+			target: targetNode,
+			value,
+		};
+		sourceNode.outgoing.push(link);
+		targetNode.incoming.push(link);
+		sourceNode.outValue += value;
+		targetNode.inValue += value;
+		links.push(link);
+	});
+
+	nodes.forEach((node) => {
+		node.value = Math.max(node.inValue, node.outValue, links.length === 0 ? 1 : 0);
+	});
+
+	const indegreeMap = new Map(nodes.map((node) => [node.id, node.incoming.length]));
+	const queue = nodes.filter((node) => (indegreeMap.get(node.id) ?? 0) === 0);
+
+	while (queue.length > 0) {
+		const node = queue.shift();
+		if (!node) {
+			break;
+		}
+		node.outgoing.forEach((link) => {
+			const nextColumn = node.column + 1;
+			if (nextColumn > link.target.column) {
+				link.target.column = nextColumn;
+			}
+			const nextIndegree = (indegreeMap.get(link.target.id) ?? 0) - 1;
+			indegreeMap.set(link.target.id, nextIndegree);
+			if (nextIndegree === 0) {
+				queue.push(link.target);
+			}
+		});
+	}
+
+	const maxColumnCap = Math.max(nodes.length - 1, 0);
+	for (let step = 0; step < nodes.length; step++) {
+		let changed = false;
+		links.forEach((link) => {
+			const nextColumn = Math.min(maxColumnCap, link.source.column + 1);
+			if (nextColumn > link.target.column) {
+				link.target.column = nextColumn;
+				changed = true;
+			}
+		});
+		if (!changed) {
+			break;
+		}
+	}
+
+	const maxColumn = nodes.reduce(
+		(currentMax, node) => Math.max(currentMax, node.column),
+		0
+	);
+	const columns = Array.from({ length: maxColumn + 1 }, () => []);
+	nodes.forEach((node) => {
+		columns[node.column].push(node);
+	});
+	columns.forEach((columnNodes) => {
+		columnNodes.sort((a, b) => b.value - a.value || a.index - b.index);
+	});
+
+	const chartWidth = Math.max(MIN_CHART_WIDTH, width);
+	const chartHeight = Math.max(MIN_CHART_HEIGHT, height);
+	const margin = { top: 16, right: 20, bottom: 16, left: 20 };
+	const nodeWidth = Math.max(14, Math.min(26, chartWidth * 0.035));
+	const innerWidth = Math.max(1, chartWidth - margin.left - margin.right - nodeWidth);
+	const innerHeight = Math.max(1, chartHeight - margin.top - margin.bottom);
+	const stepX = columns.length > 1 ? innerWidth / (columns.length - 1) : 0;
+
+	let flowScale = Number.POSITIVE_INFINITY;
+	columns.forEach((columnNodes) => {
+		if (columnNodes.length === 0) {
+			return;
+		}
+		const totalValue = columnNodes.reduce((sum, node) => sum + node.value, 0);
+		if (totalValue <= 0) {
+			return;
+		}
+		const columnGaps = NODE_PADDING * Math.max(columnNodes.length - 1, 0);
+		const nextScale = (innerHeight - columnGaps) / totalValue;
+		flowScale = Math.min(flowScale, nextScale);
+	});
+	if (!Number.isFinite(flowScale) || flowScale <= 0) {
+		flowScale = innerHeight / Math.max(nodes.length, 1);
+	}
+
+	columns.forEach((columnNodes, columnIndex) => {
+		const x = margin.left + stepX * columnIndex;
+		const provisionalHeights = columnNodes.map((node) =>
+			Math.max(MIN_NODE_HEIGHT, node.value * flowScale)
+		);
+		const rawHeightSum = provisionalHeights.reduce((sum, h) => sum + h, 0);
+		const gapSum = NODE_PADDING * Math.max(columnNodes.length - 1, 0);
+		const renderedHeight = rawHeightSum + gapSum;
+		const overflowScale =
+			renderedHeight > innerHeight && renderedHeight > 0
+				? innerHeight / renderedHeight
+				: 1;
+		const heights = provisionalHeights.map((h) => h * overflowScale);
+		const totalHeight =
+			heights.reduce((sum, h) => sum + h, 0) +
+			NODE_PADDING * Math.max(columnNodes.length - 1, 0);
+
+		let currentY = margin.top + Math.max((innerHeight - totalHeight) / 2, 0);
+		columnNodes.forEach((node, index) => {
+			node.x = x;
+			node.y = currentY;
+			node.height = heights[index];
+			node.scale = node.value > 0 ? node.height / node.value : 0;
+			currentY += node.height + NODE_PADDING;
+		});
+	});
+
+	const chartMidColumn = maxColumn / 2;
+	nodes.forEach((node) => {
+		const anchor = node.column <= chartMidColumn ? "start" : "end";
+		node.labelAnchor = anchor;
+		node.labelX = anchor === "start" ? node.x + nodeWidth + 8 : node.x - 8;
+		node.labelY = node.y + node.height / 2;
+	});
+
+	nodes.forEach((node) => {
+		node.outgoing.sort(
+			(a, b) =>
+				a.target.y + a.target.height / 2 - (b.target.y + b.target.height / 2)
+		);
+		node.incoming.sort(
+			(a, b) =>
+				a.source.y + a.source.height / 2 - (b.source.y + b.source.height / 2)
+		);
+	});
+
+	const sourceOffsets = new Map(nodes.map((node) => [node.id, 0]));
+	const targetOffsets = new Map(nodes.map((node) => [node.id, 0]));
+
+	const positionedLinks = links.map((link) => {
+		const sourceScale = link.source.scale || flowScale;
+		const targetScale = link.target.scale || flowScale;
+		const thickness = Math.max(1, link.value * Math.min(sourceScale, targetScale));
+		const sourceOffset = sourceOffsets.get(link.source.id) ?? 0;
+		const targetOffset = targetOffsets.get(link.target.id) ?? 0;
+		const y0 = link.source.y + sourceOffset;
+		const y1 = link.target.y + targetOffset;
+
+		sourceOffsets.set(link.source.id, sourceOffset + thickness);
+		targetOffsets.set(link.target.id, targetOffset + thickness);
+
+		const x0 = link.source.x + nodeWidth;
+		const x1 = link.target.x;
+		return {
+			id: link.id,
+			sourceTitle: link.source.title,
+			targetTitle: link.target.title,
+			value: link.value,
+			fill: withAlpha(link.source.color || fallbackLinkColor, 0.35, baseNodeColor),
+			path: createBandPath(x0, y0, x1, y1, thickness),
+		};
+	});
+
+	return {
+		width: chartWidth,
+		height: chartHeight,
+		nodes: nodes.map((node) => ({
+			id: node.id,
+			title: node.title,
+			value: node.value,
+			color: node.color,
+			x: node.x,
+			y: node.y,
+			width: nodeWidth,
+			height: node.height,
+			labelX: node.labelX,
+			labelY: node.labelY,
+			labelAnchor: node.labelAnchor,
+		})),
+		links: positionedLinks,
+	};
+}
+
+function hideTooltip() {
+	tooltipState.value.visible = false;
+}
+
+function setTooltipPosition(event) {
+	if (!chartContainer.value) {
+		return;
+	}
+
+	const rect = chartContainer.value.getBoundingClientRect();
+	const maxLeft = chartContainer.value.clientWidth - 8;
+	const maxTop = chartContainer.value.clientHeight - 8;
+	const left = event.clientX - rect.left + 12;
+	const top = event.clientY - rect.top + 12;
+
+	tooltipState.value.left = Math.max(8, Math.min(maxLeft, left));
+	tooltipState.value.top = Math.max(8, Math.min(maxTop, top));
+}
+
+function updateTooltipPosition(event) {
+	if (!tooltipState.value.visible) {
+		return;
+	}
+	setTooltipPosition(event);
+}
+
+function showNodeTooltip(event, node) {
+	setTooltipPosition(event);
+	tooltipState.value.title = node?.title || "-";
+	tooltipState.value.value = `${formatValue(node?.value)}${getUnitSuffix()}`;
+	tooltipState.value.visible = true;
+}
+
+function showLinkTooltip(event, link) {
+	setTooltipPosition(event);
+	tooltipState.value.title = `${link?.sourceTitle || "-"} → ${
+		link?.targetTitle || "-"
+	}`;
+	tooltipState.value.value = `${formatValue(link?.value)}${getUnitSuffix()}`;
+	tooltipState.value.visible = true;
+}
+
+function isNodeClickable() {
+	return Boolean(props.map_filter && props.map_filter_on);
+}
+
+function getNodeFill(node) {
+	if (!selectedTitle.value) {
+		return node.color;
+	}
+	if (selectedTitle.value === node.title) {
+		return node.color;
+	}
+	return withAlpha(node.color, 0.35);
+}
+
+function getNodeStroke(node) {
+	if (selectedTitle.value === node.title) {
+		return getThemeColor("--color-highlight") || node.color;
+	}
+	return withAlpha(node.color, 0.9);
+}
+
+function getLinkOpacity(link) {
+	if (!selectedTitle.value) {
+		return 1;
+	}
+	return link.sourceTitle === selectedTitle.value ||
+		link.targetTitle === selectedTitle.value
+		? 1
+		: 0.18;
+}
+
 function clearChart() {
 	if (renderFrameId.value !== null) {
 		cancelAnimationFrame(renderFrameId.value);
 		renderFrameId.value = null;
 	}
 
-	if (
-		sankeyInstance.value &&
-		typeof sankeyInstance.value.destroy === "function"
-	) {
-		sankeyInstance.value.destroy();
-	}
-	sankeyInstance.value = null;
-
-	if (chartContainer.value) {
-		chartContainer.value.innerHTML = "";
-	}
-
-	const tooltipElement = document.getElementById(tooltipId);
-	if (tooltipElement) {
-		tooltipElement.remove();
-	}
-
+	renderedNodes.value = [];
+	renderedLinks.value = [];
+	svgWidth.value = 0;
+	svgHeight.value = 0;
+	hideTooltip();
 }
 
 function handleNodeClick(node) {
-	if (!props.map_filter || !props.map_filter_on) {
+	if (!isNodeClickable()) {
 		return;
 	}
 
-	const nodeTitle = node?.data?.title;
+	const nodeTitle = node?.title;
 	if (!nodeTitle) {
 		return;
 	}
@@ -370,39 +715,17 @@ function renderChart() {
 	const width = container.clientWidth || 800;
 	const height = container.clientHeight || Math.round(width / 1.6);
 
-	clearChart();
-	sankeyInstance.value = new ApexSankey(container, {
-		width,
-		height,
-		enableToolbar: false,
-		enableTooltip: true,
-		tooltipId,
-		tooltipTheme: themeStore.theme,
-		canvasStyle: "border: none; box-sizing: border-box;",
-		fontColor: getThemeColor("--color-normal-text"),
-		fontWeight: "600",
-		fontSize: "16px",
-		onNodeClick: handleNodeClick,
-		tooltipTemplate: ({ source, target, value }) => {
-			return (
-				`<div class="chart-tooltip">` +
-				`<h6>${escapeHtml(source?.title ?? "-")} → ${escapeHtml(
-					target?.title ?? "-"
-				)}</h6>` +
-				`<span>${formatValue(value)}${getUnitSuffix()}</span>` +
-				`</div>`
-			);
-		},
-		nodeTooltipTemplate: ({ node, value }) => {
-			return (
-				`<div class="chart-tooltip">` +
-				`<h6>${escapeHtml(node?.title ?? "-")}</h6>` +
-				`<span>${formatValue(value)}${getUnitSuffix()}</span>` +
-				`</div>`
-			);
-		},
-	});
-	sankeyInstance.value.render(graphData);
+	const layout = buildSankeyLayout(graphData, width, height);
+	if (!layout) {
+		clearChart();
+		return;
+	}
+
+	svgWidth.value = layout.width;
+	svgHeight.value = layout.height;
+	renderedNodes.value = layout.nodes;
+	renderedLinks.value = layout.links;
+	hideTooltip();
 }
 
 function requestRender() {
@@ -482,7 +805,6 @@ watch(
 		if (props.activeChart !== CHART_NAME) {
 			return;
 		}
-		selectedTitle.value = null;
 		requestRender();
 	},
 	{ immediate: true }
@@ -511,7 +833,82 @@ onBeforeUnmount(() => {
     <div
       ref="chartContainer"
       class="sankeychart-canvas"
-    />
+      @mouseleave="hideTooltip"
+    >
+      <svg
+        v-if="renderedNodes.length > 0 && svgWidth > 0 && svgHeight > 0"
+        class="sankeychart-svg"
+        :viewBox="`0 0 ${svgWidth} ${svgHeight}`"
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label="Sankey flow chart"
+      >
+        <g class="sankeychart-links">
+          <path
+            v-for="link in renderedLinks"
+            :key="link.id"
+            class="sankeychart-link"
+            :d="link.path"
+            :fill="link.fill"
+            :opacity="getLinkOpacity(link)"
+            @mouseenter="showLinkTooltip($event, link)"
+            @mousemove="updateTooltipPosition"
+            @mouseleave="hideTooltip"
+          />
+        </g>
+        <g class="sankeychart-nodes">
+          <g
+            v-for="node in renderedNodes"
+            :key="node.id"
+            class="sankeychart-node"
+            :class="{
+              'is-clickable': isNodeClickable(),
+              'is-selected': selectedTitle === node.title,
+            }"
+            @click="handleNodeClick(node)"
+            @mouseenter="showNodeTooltip($event, node)"
+            @mousemove="updateTooltipPosition"
+            @mouseleave="hideTooltip"
+          >
+            <rect
+              :x="node.x"
+              :y="node.y"
+              :width="node.width"
+              :height="node.height"
+              :rx="NODE_CORNER_RADIUS"
+              :fill="getNodeFill(node)"
+              :stroke="getNodeStroke(node)"
+              stroke-width="1.2"
+            />
+            <text
+              :x="node.labelX"
+              :y="node.labelY"
+              :text-anchor="node.labelAnchor"
+              dominant-baseline="middle"
+            >
+              {{ node.title }}
+            </text>
+          </g>
+        </g>
+      </svg>
+      <div
+        v-else
+        class="sankeychart-empty"
+      >
+        暫無資料
+      </div>
+      <div
+        v-if="tooltipState.visible"
+        class="sankeychart-tooltip chart-tooltip"
+        :style="{
+          left: `${tooltipState.left}px`,
+          top: `${tooltipState.top}px`,
+        }"
+      >
+        <h6>{{ tooltipState.title }}</h6>
+        <span>{{ tooltipState.value }}</span>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -530,6 +927,8 @@ onBeforeUnmount(() => {
 		border-radius: 6px;
 		background: transparent;
 		color: var(--color-complement-text);
+		position: relative;
+		overflow: hidden;
 	}
 
 	&-empty {
@@ -543,7 +942,33 @@ onBeforeUnmount(() => {
 		pointer-events: none;
 	}
 
-	:deep(svg text) {
+	&-svg {
+		width: 100%;
+		height: 100%;
+		display: block;
+	}
+
+	&-link {
+		transition: opacity 0.15s ease;
+	}
+
+	&-node {
+		transition: opacity 0.15s ease;
+
+		&.is-clickable {
+			cursor: pointer;
+		}
+	}
+
+	&-tooltip {
+		position: absolute;
+		pointer-events: none;
+		z-index: 12;
+		max-width: 280px;
+		white-space: nowrap;
+	}
+
+	:deep(text) {
 		fill: var(--color-normal-text) !important;
 		font-weight: 600 !important;
 		font-size: 16px !important;

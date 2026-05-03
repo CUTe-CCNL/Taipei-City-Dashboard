@@ -225,7 +225,7 @@ function handleClose() {
 
 			img {
 				height: 45px;
-				filter: invert(1);
+				filter: var(--img-filter, invert(1));
 			}
 		}
 	}

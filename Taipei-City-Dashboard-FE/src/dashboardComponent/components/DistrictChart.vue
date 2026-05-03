@@ -2,6 +2,7 @@
 
 <script setup>
 import { computed, ref, nextTick } from "vue";
+import { useThemeStore } from "../../store/themeStore";
 import { districtCoordinates } from "../utilities/districtCoordinates";
 
 const props = defineProps([
@@ -23,9 +24,78 @@ const emits = defineEmits([
 ]);
 
 const targetDistrict = ref(null);
-const districtColor = ref(props.chart_config.color[0]);
 const mousePosition = ref({ x: null, y: null });
 const selectedIndex = ref(null);
+const themeStore = useThemeStore();
+
+const LIGHT_MODE_DISTRICT_FALLBACK = "#6a6f76";
+const DARK_MODE_DISTRICT_FALLBACK = "#848c94";
+
+function parseColor(rawColor) {
+	const color = rawColor?.trim().toLowerCase();
+	if (!color) return null;
+
+	const shortHexMatch = color.match(/^#([0-9a-f]{3})$/i);
+	if (shortHexMatch) {
+		const [r, g, b] = shortHexMatch[1].split("");
+		return {
+			r: parseInt(r + r, 16),
+			g: parseInt(g + g, 16),
+			b: parseInt(b + b, 16),
+		};
+	}
+
+	const longHexMatch = color.match(/^#([0-9a-f]{6})$/i);
+	if (longHexMatch) {
+		return {
+			r: parseInt(longHexMatch[1].slice(0, 2), 16),
+			g: parseInt(longHexMatch[1].slice(2, 4), 16),
+			b: parseInt(longHexMatch[1].slice(4, 6), 16),
+		};
+	}
+
+	const rgbMatch = color.match(
+		/^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})/i
+	);
+	if (!rgbMatch) return null;
+
+	return {
+		r: Math.min(255, Number(rgbMatch[1])),
+		g: Math.min(255, Number(rgbMatch[2])),
+		b: Math.min(255, Number(rgbMatch[3])),
+	};
+}
+
+function isNearBlack(rawColor) {
+	const color = parseColor(rawColor);
+	if (!color) return false;
+	return color.r <= 45 && color.g <= 45 && color.b <= 45;
+}
+
+function toRgba(rawColor, alpha) {
+	const fallbackColor =
+		themeStore.theme === "light"
+			? LIGHT_MODE_DISTRICT_FALLBACK
+			: DARK_MODE_DISTRICT_FALLBACK;
+	const color = parseColor(rawColor) || parseColor(fallbackColor);
+	return `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
+}
+
+const districtColor = computed(() => {
+	const color = props.chart_config?.color?.[0];
+	if (themeStore.theme === "light" && (!color || isNearBlack(color))) {
+		return LIGHT_MODE_DISTRICT_FALLBACK;
+	}
+	return color || DARK_MODE_DISTRICT_FALLBACK;
+});
+
+const legendGradient = computed(
+	() =>
+		`linear-gradient(to right, ${districtColor.value}, ${toRgba(
+			districtColor.value,
+			0.2
+		)})`
+);
 
 const cities = [
 	{ name: "臺北市", value: "taipei" },
@@ -288,7 +358,7 @@ function handleDataSelection(index) {
       <div class="districtchart-title-legend">
         <p>多</p>
         <div
-          :style="{ backgroundColor: props.chart_config.color[0] }"
+          :style="{ background: legendGradient }"
         />
         <p>少</p>
       </div>
@@ -1279,22 +1349,9 @@ function handleDataSelection(index) {
 			div {
 				position: relative;
 				width: 3rem;
+				height: var(--font-l);
 				margin: 0 4px;
 				border-radius: 5px;
-			}
-
-			div:before {
-				content: "";
-				width: 3rem;
-				height: var(--font-l);
-				position: absolute;
-				top: 0;
-				left: 0;
-				background: linear-gradient(
-					270deg,
-					rgba(40, 42, 44, 1),
-					rgba(40, 42, 44, 0.2)
-				);
 			}
 
 			p {
@@ -1361,4 +1418,3 @@ function handleDataSelection(index) {
 	}
 }
 </style>
-
