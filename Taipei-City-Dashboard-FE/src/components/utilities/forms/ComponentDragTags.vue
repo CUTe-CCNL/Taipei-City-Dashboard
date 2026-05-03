@@ -88,12 +88,18 @@ const handleDragEnd = () => {
 	padding: 4px;
 	border-radius: 5px;
 	background-color: var(--color-complement-text);
+	color: #ffffff;
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: clip;
 
 	h3 {
 		margin-bottom: 2px;
+		color: inherit;
+	}
+
+	p {
+		color: inherit;
 	}
 
 	button {
@@ -102,9 +108,11 @@ const handleDragEnd = () => {
 		right: 2px;
 		padding: 2px 2px 0;
 		background-color: var(--color-complement-text);
+		color: inherit;
 
 		span {
 			font-family: var(--font-icon);
+			color: inherit;
 		}
 	}
 
@@ -112,6 +120,7 @@ const handleDragEnd = () => {
 		padding: 2px 4px;
 		border: dashed 1px var(--color-border);
 		background-color: var(--color-component-background);
+		color: var(--color-normal-text);
 
 		button {
 			display: none;

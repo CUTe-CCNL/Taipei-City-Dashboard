@@ -208,6 +208,8 @@ function handleClose() {
 			padding: 2px 4px;
 			border-radius: 5px;
 			background-color: var(--color-highlight);
+			color: #ffffff;
+			font-weight: 500;
 			font-size: var(--font-ms);
 		}
 	}
@@ -267,6 +269,8 @@ function handleClose() {
 
 				&:checked + label {
 					border: solid 1px var(--color-highlight);
+					background-color: var(--color-highlight);
+					color: #ffffff;
 				}
 			}
 
@@ -281,10 +285,13 @@ function handleClose() {
 				border-radius: 5px;
 				font-size: 1.2rem;
 				font-family: var(--font-icon);
+				color: var(--color-complement-text);
+				transition: border-color 0.2s, color 0.2s, background-color 0.2s;
 				cursor: pointer;
 
 				&:hover {
-					border: solid 1px var(--color-border);
+					border: solid 1px var(--color-highlight);
+					color: var(--color-normal-text);
 				}
 			}
 		}

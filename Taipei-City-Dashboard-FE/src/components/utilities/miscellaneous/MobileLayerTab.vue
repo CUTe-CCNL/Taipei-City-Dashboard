@@ -30,7 +30,10 @@ function handleToggle() {
 }
 function handleBasicToggle() {
 	if (checked.value) {
-		mapStore.addToMapLayerList(props.content.map_config);
+		mapStore.addToMapLayerList(
+			props.content.map_config,
+			props.content.name,
+		);
 	} else {
 		mapStore.turnOffMapLayerVisibility(props.content.map_config);
 	}
@@ -49,7 +52,10 @@ function handleMetroTaipeiToggle() {
 
 	if (checked.value && toggleCount.value === 0) {
 		// 第一次切換：開啟當前圖層
-		mapStore.addToMapLayerList(props.content.map_config);
+		mapStore.addToMapLayerList(
+			props.content.map_config,
+			props.content.name,
+		);
 		toggleCount.value++;
 	} else if (toggleCount.value === 1) {
 		// 第二次切換：切換到另一個城市
@@ -58,7 +64,10 @@ function handleMetroTaipeiToggle() {
 			.getTagList(selectedData.city)
 			.find((tag) => tag.value === selectedData.city);
 		mapStore.turnOffMapLayerVisibility(props.content.map_config);
-		mapStore.addToMapLayerList(selectedData.map_config);
+		mapStore.addToMapLayerList(
+			selectedData.map_config,
+			selectedData.name || props.content.name,
+		);
 		toggleCount.value++;
 	} else {
 		// 第三次切換：關閉所有圖層，重置狀態

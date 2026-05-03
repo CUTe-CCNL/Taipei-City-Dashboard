@@ -77,7 +77,7 @@ function handleOpenSettings() {
 }
 
 // Open and closes the component as well as communicates to the mapStore to turn on and off map layers
-function handleToggle(value, map_config) {
+function handleToggle(value, map_config, componentName) {
 	if (!map_config[0]) {
 		if (value) {
 			dialogStore.showNotification(
@@ -88,7 +88,7 @@ function handleToggle(value, map_config) {
 		return;
 	}
 	if (value) {
-		mapStore.addToMapLayerList(map_config);
+		mapStore.addToMapLayerList(map_config, componentName);
 	} else {
 		mapStore.clearByParamFilter(map_config);
 		mapStore.turnOffMapLayerVisibility(map_config);
@@ -181,7 +181,7 @@ function popularBasicLayerGA(map_config) {
           "
           @toggle="
             (value, map_config) => {
-              handleToggle(value, map_config);
+              handleToggle(value, map_config, item.name);
               toggleSwitchBtn(value, 'mapLayer', arrayIdx);
               popularThematicLayerGA(map_config);
             }
@@ -237,6 +237,7 @@ function popularBasicLayerGA(map_config) {
                 );
                 mapStore.addToMapLayerList(
                   selectedData.map_config,
+                  selectedData.name || item.name,
                 );
 
                 contentStore.setComponentData(
@@ -296,7 +297,7 @@ function popularBasicLayerGA(map_config) {
           "
           @toggle="
             (value, map_config) => {
-              handleToggle(value, map_config);
+              handleToggle(value, map_config, item.name);
               toggleSwitchBtn(value, 'hasMap', arrayIdx);
               popularThematicLayerGA(map_config);
             }
@@ -357,6 +358,7 @@ function popularBasicLayerGA(map_config) {
                 );
                 mapStore.addToMapLayerList(
                   selectedData.map_config,
+                  selectedData.name || item.name,
                 );
 
                 contentStore.setComponentData(
@@ -402,7 +404,7 @@ function popularBasicLayerGA(map_config) {
           "
           @toggle="
             (value, map_config) => {
-              handleToggle(value, map_config);
+              handleToggle(value, map_config, item.name);
               toggleSwitchBtn(value, 'basicLayer', arrayIdx);
               popularBasicLayerGA(map_config);
             }
@@ -452,6 +454,7 @@ function popularBasicLayerGA(map_config) {
                 );
                 mapStore.addToMapLayerList(
                   selectedData.map_config,
+                  selectedData.name || item.name,
                 );
 
                 contentStore.setMapLayerData(
@@ -505,7 +508,7 @@ function popularBasicLayerGA(map_config) {
           "
           @toggle="
             (value, map_config) => {
-              handleToggle(value, map_config);
+              handleToggle(value, map_config, item.name);
               toggleSwitchBtn(value, 'noMap', arrayIdx);
             }
           "

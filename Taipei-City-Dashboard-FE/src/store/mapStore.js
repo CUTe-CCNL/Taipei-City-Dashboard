@@ -518,13 +518,24 @@ export const useMapStore = defineStore("map", {
 
 		/* Adding Map Layers */
 		// 1. Passes in the map_config (an Array of Objects) of a component and adds all layers to the map layer list
-		addToMapLayerList(map_config) {
+		addToMapLayerList(map_config, componentName = null) {
 			map_config.forEach((element) => {
+				const resolvedComponentName =
+					componentName ||
+					element.componentName ||
+					element.title ||
+					"";
 				let mapLayerId = `${element.index}-${element.type}-${element.city}`;
 				// 1-1. If the layer exists, simply turn on the visibility and add it to the visible layers list
 				if (
 					this.currentLayers.find((element) => element === mapLayerId)
 				) {
+					this.mapConfigs[mapLayerId] = {
+						...this.mapConfigs[mapLayerId],
+						...element,
+						componentName: resolvedComponentName,
+						layerId: mapLayerId,
+					};
 					this.loadingLayers.push("rendering");
 					this.turnOnMapLayerVisibility(mapLayerId);
 					if (
@@ -536,7 +547,10 @@ export const useMapStore = defineStore("map", {
 					}
 					return;
 				}
-				let appendLayer = { ...element };
+				let appendLayer = {
+					...element,
+					componentName: resolvedComponentName,
+				};
 				appendLayer.layerId = mapLayerId;
 				// 1-2. If the layer doesn't exist, call an API to get the layer data
 				this.loadingLayers.push(appendLayer.layerId);

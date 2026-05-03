@@ -78,6 +78,8 @@ function handleDelete() {
 			padding: 2px 4px;
 			border-radius: 5px;
 			background-color: rgb(192, 67, 67);
+			color: #ffffff;
+			font-weight: 500;
 			transition: opacity 0.2s;
 
 			&:hover {

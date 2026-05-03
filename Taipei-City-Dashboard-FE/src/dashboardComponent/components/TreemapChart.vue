@@ -26,6 +26,14 @@ const emits = defineEmits([
 
 const themeStore = useThemeStore();
 const chartRenderKey = ref(0);
+const componentBackgroundColor = computed(() => {
+	themeStore.theme;
+	return getThemeColor("--color-component-background");
+});
+const normalTextColor = computed(() => {
+	themeStore.theme;
+	return getThemeColor("--color-normal-text");
+});
 
 const MAX_ITEMS = 20;
 
@@ -55,6 +63,7 @@ const displayedSeries = computed(() => {
 const chartOptions = computed(() => ({
 	chart: {
 		borderRadius: 5,
+		foreColor: normalTextColor.value,
 		toolbar: {
 			show: false,
 		},
@@ -66,6 +75,11 @@ const chartOptions = computed(() => ({
 	dataLabels: {
 		formatter: function (val) {
 			return val;
+		},
+		style: {
+			colors: (displayedSeries.value[0]?.data ?? []).map(
+				() => normalTextColor.value
+			),
 		},
 	},
 	grid: {
@@ -81,7 +95,7 @@ const chartOptions = computed(() => ({
 		},
 	},
 	stroke: {
-		colors: [getThemeColor("--color-component-background")],
+		colors: [componentBackgroundColor.value],
 		show: true,
 		width: 2,
 	},

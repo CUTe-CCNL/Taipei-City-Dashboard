@@ -1,7 +1,19 @@
 <!-- Developed by Taipei Urban Intelligence Center 2023-2024-->
 
 <!-- This component is mounted programmically by the mapstore. "mapConfig" and "popupContent" are passed in in the mapStore -->
-<script setup></script>
+<script setup>
+function getPopupTitle(mapConfig) {
+	return mapConfig?.componentName || mapConfig?.title || "圖層資訊";
+}
+
+function getPopupTabTitle(mapConfig, isActive) {
+	const title = getPopupTitle(mapConfig);
+	if (isActive || title.length <= 5) {
+		return title;
+	}
+	return `${title.slice(0, 4)}...`;
+}
+</script>
 
 <template>
   <div class="mappopup">
@@ -18,13 +30,7 @@
             }
           "
         >
-          {{
-            activeTab === index
-              ? mapConfig.title
-              : mapConfig.title.length > 5
-                ? mapConfig.title.slice(0, 4) + "..."
-                : mapConfig.title
-          }}
+          {{ getPopupTabTitle(mapConfig, activeTab === index) }}
         </button>
       </div>
     </div>
