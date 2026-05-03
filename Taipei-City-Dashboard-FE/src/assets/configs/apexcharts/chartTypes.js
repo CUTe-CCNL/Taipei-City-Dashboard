@@ -40,6 +40,7 @@ export const chartsPerDataType = {
 		"ColumnChart",
 		"BarPercentChart",
 		"SankeyChart",
+		"SunburstChart",
 		"RadarChart",
 		"DistrictChart",
 		"HeatmapChart",

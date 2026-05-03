@@ -32,6 +32,10 @@ const svgWidth = ref(0);
 const svgHeight = ref(0);
 const renderedNodes = ref([]);
 const renderedLinks = ref([]);
+const tooltipElement = ref(null);
+const gradientPrefix = `sankey-link-gradient-${Math.random()
+	.toString(36)
+	.slice(2, 10)}`;
 
 const tooltipState = ref({
 	visible: false,
@@ -535,7 +539,7 @@ function buildSankeyLayout(graphData, width, height) {
 	const sourceOffsets = new Map(nodes.map((node) => [node.id, 0]));
 	const targetOffsets = new Map(nodes.map((node) => [node.id, 0]));
 
-	const positionedLinks = links.map((link) => {
+	const positionedLinks = links.map((link, linkIndex) => {
 		const sourceScale = link.source.scale || flowScale;
 		const targetScale = link.target.scale || flowScale;
 		const thickness = Math.max(1, link.value * Math.min(sourceScale, targetScale));
@@ -549,12 +553,27 @@ function buildSankeyLayout(graphData, width, height) {
 
 		const x0 = link.source.x + nodeWidth;
 		const x1 = link.target.x;
+		const sourceColor = link.source.color || fallbackLinkColor;
+		const targetColor = link.target.color || fallbackLinkColor;
+		const startColor = withAlpha(sourceColor, 0.45, baseNodeColor);
+		const endColor = withAlpha(targetColor, 0.26, fallbackLinkColor);
+		const gradientId = `${gradientPrefix}-${linkIndex}-${link.id.replace(
+			/[^a-z0-9_-]/gi,
+			"_"
+		)}`;
 		return {
 			id: link.id,
 			sourceTitle: link.source.title,
 			targetTitle: link.target.title,
 			value: link.value,
-			fill: withAlpha(link.source.color || fallbackLinkColor, 0.35, baseNodeColor),
+			fill: `url(#${gradientId})`,
+			gradientId,
+			gradientX1: x0,
+			gradientY1: y0,
+			gradientX2: x1,
+			gradientY2: y1,
+			gradientStartColor: startColor,
+			gradientEndColor: endColor,
 			path: createBandPath(x0, y0, x1, y1, thickness),
 		};
 	});
@@ -589,13 +608,34 @@ function setTooltipPosition(event) {
 	}
 
 	const rect = chartContainer.value.getBoundingClientRect();
-	const maxLeft = chartContainer.value.clientWidth - 8;
-	const maxTop = chartContainer.value.clientHeight - 8;
-	const left = event.clientX - rect.left + 12;
-	const top = event.clientY - rect.top + 12;
+	const padding = 8;
+	const offset = 12;
+	const pointerX = event.clientX - rect.left;
+	const pointerY = event.clientY - rect.top;
+	const tooltipWidth = tooltipElement.value?.offsetWidth ?? 0;
+	const tooltipHeight = tooltipElement.value?.offsetHeight ?? 0;
 
-	tooltipState.value.left = Math.max(8, Math.min(maxLeft, left));
-	tooltipState.value.top = Math.max(8, Math.min(maxTop, top));
+	let left = pointerX + offset;
+	let top = pointerY + offset;
+
+	if (left + tooltipWidth > chartContainer.value.clientWidth - padding) {
+		left = pointerX - tooltipWidth - offset;
+	}
+	if (top + tooltipHeight > chartContainer.value.clientHeight - padding) {
+		top = pointerY - tooltipHeight - offset;
+	}
+
+	const maxLeft = Math.max(
+		padding,
+		chartContainer.value.clientWidth - tooltipWidth - padding
+	);
+	const maxTop = Math.max(
+		padding,
+		chartContainer.value.clientHeight - tooltipHeight - padding
+	);
+
+	tooltipState.value.left = Math.max(padding, Math.min(maxLeft, left));
+	tooltipState.value.top = Math.max(padding, Math.min(maxTop, top));
 }
 
 function updateTooltipPosition(event) {
@@ -606,19 +646,23 @@ function updateTooltipPosition(event) {
 }
 
 function showNodeTooltip(event, node) {
-	setTooltipPosition(event);
 	tooltipState.value.title = node?.title || "-";
 	tooltipState.value.value = `${formatValue(node?.value)}${getUnitSuffix()}`;
 	tooltipState.value.visible = true;
+	nextTick(() => {
+		setTooltipPosition(event);
+	});
 }
 
 function showLinkTooltip(event, link) {
-	setTooltipPosition(event);
 	tooltipState.value.title = `${link?.sourceTitle || "-"} → ${
 		link?.targetTitle || "-"
 	}`;
 	tooltipState.value.value = `${formatValue(link?.value)}${getUnitSuffix()}`;
 	tooltipState.value.visible = true;
+	nextTick(() => {
+		setTooltipPosition(event);
+	});
 }
 
 function isNodeClickable() {
@@ -843,6 +887,27 @@ onBeforeUnmount(() => {
         role="img"
         aria-label="Sankey flow chart"
       >
+        <defs>
+          <linearGradient
+            v-for="link in renderedLinks"
+            :id="link.gradientId"
+            :key="link.gradientId"
+            gradientUnits="userSpaceOnUse"
+            :x1="link.gradientX1"
+            :y1="link.gradientY1"
+            :x2="link.gradientX2"
+            :y2="link.gradientY2"
+          >
+            <stop
+              offset="0%"
+              :stop-color="link.gradientStartColor"
+            />
+            <stop
+              offset="100%"
+              :stop-color="link.gradientEndColor"
+            />
+          </linearGradient>
+        </defs>
         <g class="sankeychart-links">
           <path
             v-for="link in renderedLinks"
@@ -899,6 +964,7 @@ onBeforeUnmount(() => {
       </div>
       <div
         v-if="tooltipState.visible"
+        ref="tooltipElement"
         class="sankeychart-tooltip chart-tooltip"
         :style="{
           left: `${tooltipState.left}px`,
