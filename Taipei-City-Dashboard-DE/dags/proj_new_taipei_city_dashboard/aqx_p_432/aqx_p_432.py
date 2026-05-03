@@ -158,6 +158,16 @@ def _transfer(**kwargs):
     exist = [c for c in order_cols if c in data.columns]
     ready_data = data[exist].dropna(subset=["siteid"], how="any")
 
+    # Normalize names like "新北（樹林）" -> "樹林" so DB/store uses the district name
+    if "sitename" in ready_data.columns:
+        ready_data["sitename"] = ready_data["sitename"].astype(str).str.replace(
+            r"^新北[（(](.+?)[）)]$", r"\1", regex=True
+        )
+    if "county" in ready_data.columns:
+        ready_data["county"] = ready_data["county"].astype(str).str.replace(
+            r"^新北[（(](.+?)[）)]$", r"\1", regex=True
+        )
+
     # --- Load：依 load_behavior 寫入 ready 表（並於 current+history 時附加歷史表）---
     engine = create_engine(ready_data_db_uri)
     save_dataframe_to_postgresql(
