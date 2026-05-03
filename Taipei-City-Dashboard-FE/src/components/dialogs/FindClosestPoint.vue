@@ -123,9 +123,9 @@ function handleFind() {
 				font-size: var(--font-ms);
 			}
 
-			&:checked + label {
-				color: white;
-			}
+				&:checked + label {
+					color: var(--color-normal-text);
+				}
 
 			&:hover + label {
 				color: var(--color-highlight);

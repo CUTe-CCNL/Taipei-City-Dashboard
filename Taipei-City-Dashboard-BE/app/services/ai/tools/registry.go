@@ -6,22 +6,38 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"github.com/tmc/langchaingo/llms"
 )
 
 // ToolFunc defines the signature for a tool function
 type ToolFunc func(ctx context.Context, args string) (string, error)
 
 var registry = make(map[string]ToolFunc)
+var toolDefinitions = make([]llms.Tool, 0)
 
 func init() {
 	// Register demo tools
-	Register("get_current_time", GetCurrentTime)
-	Register("get_population_summary", GetPopulationSummary)
+	registerWithSchema(GetCurrentTimeTool(), GetCurrentTime)
+	registerWithSchema(GetPopulationSummaryTool(), GetPopulationSummary)
+
+	// Register civic assistant tools
+	registerWithSchema(SearchComponentsTool(), SearchComponents)
+	registerWithSchema(GetChartDataTool(), GetChartData)
+	registerWithSchema(GetDashboardTool(), GetDashboard)
 }
 
 // Register adds a tool to the registry
 func Register(name string, fn ToolFunc) {
 	registry[name] = fn
+}
+
+func registerWithSchema(tool llms.Tool, fn ToolFunc) {
+	if tool.Function == nil {
+		return
+	}
+	Register(tool.Function.Name, fn)
+	toolDefinitions = append(toolDefinitions, tool)
 }
 
 // Execute calls a registered tool with the given arguments
@@ -56,11 +72,11 @@ func GetPopulationSummary(ctx context.Context, args string) (string, error) {
 
 	// Define result structure based on database schema
 	var result struct {
-		Year      int `gorm:"column:year"`
-		Young     int `gorm:"column:young_population"`
-		Working   int `gorm:"column:working_age_population"`
-		Elderly   int `gorm:"column:elderly_population"`
-		DataTime  time.Time `gorm:"column:data_time"`
+		Year     int       `gorm:"column:year"`
+		Young    int       `gorm:"column:young_population"`
+		Working  int       `gorm:"column:working_age_population"`
+		Elderly  int       `gorm:"column:elderly_population"`
+		DataTime time.Time `gorm:"column:data_time"`
 	}
 
 	// Query the dashboard database
@@ -95,4 +111,79 @@ func GetCurrentTime(ctx context.Context, args string) (string, error) {
 // Helper to parse JSON arguments if needed in future tools
 func parseArgs(args string, v interface{}) error {
 	return json.Unmarshal([]byte(args), v)
+}
+
+func cloneJSONSchema(v interface{}) interface{} {
+	raw, err := json.Marshal(v)
+	if err != nil {
+		return v
+	}
+	var out interface{}
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return v
+	}
+	return out
+}
+
+// DefaultTools returns the registered tool schemas for LLM tool-calling.
+func DefaultTools() []llms.Tool {
+	out := make([]llms.Tool, 0, len(toolDefinitions))
+	for _, t := range toolDefinitions {
+		if t.Function == nil {
+			continue
+		}
+		dup := t
+		params := t.Function.Parameters
+		if params == nil {
+			params = map[string]interface{}{
+				"type":       "object",
+				"properties": map[string]interface{}{},
+			}
+		}
+		dup.Function = &llms.FunctionDefinition{
+			Name:        t.Function.Name,
+			Description: t.Function.Description,
+			Parameters:  cloneJSONSchema(params),
+		}
+		out = append(out, dup)
+	}
+	return out
+}
+
+func GetCurrentTimeTool() llms.Tool {
+	return llms.Tool{
+		Type: "function",
+		Function: &llms.FunctionDefinition{
+			Name:        "get_current_time",
+			Description: "取得目前台北時間（Asia/Taipei）。",
+			Parameters: map[string]interface{}{
+				"type":       "object",
+				"properties": map[string]interface{}{},
+			},
+		},
+	}
+}
+
+func GetPopulationSummaryTool() llms.Tool {
+	return llms.Tool{
+		Type: "function",
+		Function: &llms.FunctionDefinition{
+			Name:        "get_population_summary",
+			Description: "查詢臺北市或新北市的人口結構統計摘要。",
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"city": map[string]interface{}{
+						"type":        "string",
+						"description": "城市代碼，可為 taipei 或 new_taipei。",
+					},
+					"year": map[string]interface{}{
+						"type":        "integer",
+						"description": "查詢年度（例如 2024）。",
+					},
+				},
+				"required": []string{"year"},
+			},
+		},
+	}
 }

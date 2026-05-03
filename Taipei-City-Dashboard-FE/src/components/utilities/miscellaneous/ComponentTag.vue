@@ -52,14 +52,14 @@ defineProps({
 		color: var(--color-complement-text);
 	}
 
-	&-fill {
-		background-color: var(--color-complement-text);
+		&-fill {
+			background-color: var(--color-complement-text);
 
-		span,
-		p {
-			color: white;
+			span,
+			p {
+				color: var(--color-normal-text);
+			}
 		}
-	}
 
 	&-small {
 		min-height: var(--font-ms);

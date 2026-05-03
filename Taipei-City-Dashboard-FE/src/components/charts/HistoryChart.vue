@@ -163,17 +163,17 @@ function parseTime(time) {
 			transition: color 0.2s, opacity 0.2s;
 			user-select: none;
 
-			&:hover {
-				opacity: 1;
-				color: white;
+				&:hover {
+					opacity: 1;
+					color: var(--color-normal-text);
+				}
+			}
+
+			.active {
+				background-color: var(--color-complement-text);
+				color: var(--color-normal-text);
 			}
 		}
-
-		.active {
-			background-color: var(--color-complement-text);
-			color: white;
-		}
-	}
 
 	&-error {
 		height: 155px;

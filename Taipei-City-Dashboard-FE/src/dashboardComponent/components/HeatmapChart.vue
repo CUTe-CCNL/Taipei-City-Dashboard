@@ -1,8 +1,10 @@
 <!-- Developed by Taipei Urban Intelligence Center 2023-2024-->
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import VueApexCharts from "vue3-apexcharts";
+import { useThemeStore } from "../../store/themeStore";
+import { getThemeColor } from "../utilities/themeColors";
 
 const props = defineProps([
 	"chart_config",
@@ -20,6 +22,9 @@ const emits = defineEmits([
 	"clearByLayerFilter",
 	"fly"
 ]);
+
+const themeStore = useThemeStore();
+const chartRenderKey = ref(0);
 
 const heatmapData = computed(() => {
 	let output = {};
@@ -79,7 +84,12 @@ const colorScale = computed(() => {
 	return ranges;
 });
 
-const chartOptions = ref({
+const componentBackgroundColor = computed(() => {
+	themeStore.theme;
+	return getThemeColor("--color-component-background");
+});
+
+const chartOptions = computed(() => ({
 	chart: {
 		stacked: true,
 		toolbar: {
@@ -115,7 +125,7 @@ const chartOptions = ref({
 	stroke: {
 		show: true,
 		width: 2,
-		colors: ["#282a2c"],
+		colors: [componentBackgroundColor.value],
 	},
 	tooltip: {
 		custom: function ({
@@ -167,7 +177,15 @@ const chartOptions = ref({
 			return heatmapData.value.highest;
 		},
 	},
-});
+}));
+
+watch(
+	() => themeStore.theme,
+	() => {
+		chartRenderKey.value += 1;
+	},
+	{ immediate: true }
+);
 
 const selectedIndex = ref(null);
 
@@ -218,6 +236,7 @@ function handleDataSelection(_e, _chartContext, config) {
       <h6>{{ heatmapData.sum }} {{ chart_config.unit }}</h6>
     </div>
     <VueApexCharts
+      :key="`heatmap-${chartRenderKey}`"
       width="100%"
       height="360px"
       type="heatmap"

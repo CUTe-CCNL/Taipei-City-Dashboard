@@ -4,6 +4,8 @@ export const chartTypes = {
 	ColumnChart: "縱向長條圖",
 	BarPercentChart: "長條圖(%)",
 	TreemapChart: "矩形圖",
+	SankeyChart: "桑基圖",
+	SunburstChart: "旭日圖",
 	DistrictChart: "行政區圖",
 	MetroChart: "捷運行駛圖",
 	TimelineSeparateChart: "折線圖(比較)",
@@ -27,6 +29,8 @@ export const chartsPerDataType = {
 		"BarChart",
 		"ColumnChart",
 		"TreemapChart",
+		"SankeyChart",
+		"SunburstChart",
 		"DistrictChart",
 		"RadarChart",
 		"PolarAreaChart",
@@ -35,6 +39,7 @@ export const chartsPerDataType = {
 	three_d: [
 		"ColumnChart",
 		"BarPercentChart",
+		"SankeyChart",
 		"RadarChart",
 		"DistrictChart",
 		"HeatmapChart",
@@ -48,6 +53,7 @@ export const chartsPerDataType = {
 		"BarPercentChart",
 		"BarChartWithGoal",
 		"IconPercentChart",
+		"SankeyChart",
 	],
 	map_legend: ["MapLegend"],
 };

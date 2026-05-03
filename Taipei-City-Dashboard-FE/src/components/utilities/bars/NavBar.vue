@@ -9,6 +9,7 @@ import { useRoute } from "vue-router";
 import { useFullscreen } from "@vueuse/core";
 import { useAuthStore } from "../../../store/authStore";
 import { useDialogStore } from "../../../store/dialogStore";
+import { useThemeStore } from "../../../store/themeStore";
 
 import UserSettings from "../../dialogs/UserSettings.vue";
 import ContributorsList from "../../dialogs/ContributorsList.vue";
@@ -16,6 +17,7 @@ import ContributorsList from "../../dialogs/ContributorsList.vue";
 const route = useRoute();
 const authStore = useAuthStore();
 const dialogStore = useDialogStore();
+const themeStore = useThemeStore();
 const { isFullscreen, toggle } = useFullscreen();
 
 const linkQuery = computed(() => {
@@ -32,6 +34,14 @@ const location = computed(() => {
 const isLocalhost = computed(() => {
 	return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 });
+
+const themeToggleIcon = computed(() =>
+	themeStore.theme === "light" ? "dark_mode" : "light_mode"
+);
+
+function toggleTheme() {
+	themeStore.setTheme(themeStore.theme === "dark" ? "light" : "dark");
+}
 </script>
 
 <template>
@@ -113,6 +123,13 @@ const isLocalhost = computed(() => {
           <ContributorsList />
         </teleport>
       </div>
+      <button
+        class="navbar-user-theme-toggle"
+        :title="themeStore.theme === 'light' ? '切換深色模式' : '切換亮色模式'"
+        @click="toggleTheme"
+      >
+        <span>{{ themeToggleIcon }}</span>
+      </button>
       <div
         v-if="
           authStore.token &&
@@ -208,12 +225,12 @@ const isLocalhost = computed(() => {
 			height: 45px;
 			margin: 0 var(--font-m);
 
-			img {
-				height: 45px;
-				filter: invert(1);
+				img {
+					height: 45px;
+					filter: var(--img-filter, invert(1));
+				}
 			}
 		}
-	}
 
 	&-tabs {
 		display: flex;
@@ -289,18 +306,18 @@ const isLocalhost = computed(() => {
 				display: none;
 			}
 
-			ul {
-				min-width: 100px;
-				display: none;
+				ul {
+					min-width: 100px;
+					display: none;
 				position: absolute;
 				right: 20px;
 				top: 55px;
 				padding: 8px;
 				border-radius: 5px;
-				background-color: rgb(85, 85, 85);
-				opacity: 0;
-				transition: opacity 0.25s;
-				z-index: 10;
+					background-color: var(--color-component-background);
+					opacity: 0;
+					transition: opacity 0.25s;
+					z-index: 10;
 
 				li {
 					border-radius: 5px;
@@ -338,6 +355,23 @@ const isLocalhost = computed(() => {
 			}
 			@media screen and (max-height: 500px) {
 				display: flex;
+			}
+		}
+
+		&-theme-toggle {
+			height: 60px;
+			min-width: 0;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+
+			span {
+				color: var(--color-complement-text);
+				transition: color 0.2s;
+			}
+
+			&:hover span {
+				color: var(--color-highlight);
 			}
 		}
 	}

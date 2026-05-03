@@ -1,8 +1,11 @@
 <!-- Developed by Taipei Urban Intelligence Center 2023-2024-->
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import VueApexCharts from "vue3-apexcharts";
+import { useThemeStore } from "../../store/themeStore";
+import { resolveChartColors } from "../utilities/chartColors";
+import { getThemeColor } from "../utilities/themeColors";
 
 const props = defineProps([
 	"chart_config",
@@ -20,6 +23,9 @@ const emits = defineEmits([
 	"clearByLayerFilter",
 	"fly"
 ]);
+
+const themeStore = useThemeStore();
+const chartRenderKey = ref(0);
 
 const isLargeDataSet = computed(() => {
 	return props.series[0].data.length > 12
@@ -40,7 +46,16 @@ const chartWidth = computed(() => {
 });
 
 
-const chartOptions = ref({
+const chartColors = computed(() =>
+	resolveChartColors(props.chart_config.color, props.series[0]?.data ?? [])
+);
+
+const componentBackgroundColor = computed(() => {
+	themeStore.theme;
+	return getThemeColor("--color-component-background");
+});
+
+const chartOptions = computed(() => ({
 	chart: {
 		stacked: true,
 		zoom: {
@@ -61,7 +76,7 @@ const chartOptions = ref({
 				show: false,
 			}
 	},
-	colors: [...props.chart_config.color],
+	colors: chartColors.value,
 	dataLabels: {
 		enabled: props.chart_config.categories ? false : true,
 		offsetY: 20,
@@ -88,7 +103,7 @@ const chartOptions = ref({
 		},
 	},
 	stroke: {
-		colors: ["#282a2c"],
+		colors: [componentBackgroundColor.value],
 		show: true,
 		width: 2,
 	},
@@ -133,7 +148,15 @@ const chartOptions = ref({
 		},
 		type: "category",
 	},
-});
+}));
+
+watch(
+	() => themeStore.theme,
+	() => {
+		chartRenderKey.value += 1;
+	},
+	{ immediate: true }
+);
 
 const selectedIndex = ref(null);
 
@@ -217,7 +240,7 @@ function resetWidth() {
       </p>
     </div>
     <VueApexCharts
-      :key="chartWidth"
+      :key="`${chartWidth}-${chartRenderKey}`"
       type="bar"
       :width="chartWidth"
       height="250px"
@@ -270,4 +293,3 @@ function resetWidth() {
 	}
 }
 </style>
-

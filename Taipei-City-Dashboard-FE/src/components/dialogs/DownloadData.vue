@@ -157,8 +157,8 @@ function handleClose() {
 	&-radio {
 		display: none;
 
-		&:checked + label {
-			color: white;
+			&:checked + label {
+				color: var(--color-normal-text);
 
 			div {
 				background-color: var(--color-highlight);

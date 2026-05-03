@@ -22,6 +22,7 @@ import { useAuthStore } from "./store/authStore";
 import { useDialogStore } from "./store/dialogStore";
 import { useContentStore } from "./store/contentStore";
 import { useMapStore } from "./store/mapStore";
+import { useThemeStore } from "./store/themeStore";
 
 import NavBar from "./components/utilities/bars/NavBar.vue";
 import SideBar from "./components/utilities/bars/SideBar.vue";
@@ -37,6 +38,7 @@ import ChatBotIcon from "./components/icons/ChatBotIcon.vue";
 const authStore = useAuthStore();
 const dialogStore = useDialogStore();
 const contentStore = useContentStore();
+const themeStore = useThemeStore();
 const timeToUpdate = ref(600);
 
 const mapStore = useMapStore();
@@ -186,6 +188,7 @@ function hideBtnClickHandler() {
 { immediate: true });
 
 onBeforeMount(() => {
+	themeStore.initTheme();
 	authStore.initialChecks();
 
 	let vh = window.innerHeight * 0.01;
@@ -320,7 +323,7 @@ onBeforeUnmount(() => {
 		position: fixed;
 		bottom: 0;
 		right: 20px;
-		color: white;
+		color: var(--color-normal-text);
 		opacity: 0.3;
 		transition: opacity 0.3s;
 		user-select: none;

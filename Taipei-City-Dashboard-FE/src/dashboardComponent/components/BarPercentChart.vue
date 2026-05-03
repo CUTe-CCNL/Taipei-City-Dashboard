@@ -1,8 +1,10 @@
 <!-- Developed by Taipei Urban Intelligence Center 2023-2024-->
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import VueApexCharts from "vue3-apexcharts";
+import { useThemeStore } from "../../store/themeStore";
+import { getThemeColor } from "../utilities/themeColors";
 
 const props = defineProps([
 	"chart_config",
@@ -21,8 +23,24 @@ const emits = defineEmits([
 	"fly"
 ]);
 
-const chartOptions = ref({
+const themeStore = useThemeStore();
+const chartRenderKey = ref(0);
+const componentBackgroundColor = computed(() => {
+	themeStore.theme;
+	return getThemeColor("--color-component-background");
+});
+const normalTextColor = computed(() => {
+	themeStore.theme;
+	return getThemeColor("--color-normal-text");
+});
+const complementTextColor = computed(() => {
+	themeStore.theme;
+	return getThemeColor("--color-complement-text");
+});
+
+const chartOptions = computed(() => ({
 	chart: {
+		foreColor: complementTextColor.value,
 		stacked: true,
 		stackType: "100%",
 		toolbar: {
@@ -34,6 +52,9 @@ const chartOptions = ref({
 		: props.chart_config.color,
 	dataLabels: {
 		textAnchor: "start",
+		style: {
+			colors: props.series.map(() => normalTextColor.value),
+		},
 	},
 	grid: {
 		show: false,
@@ -50,7 +71,7 @@ const chartOptions = ref({
 		},
 	},
 	stroke: {
-		colors: ["#282a2c"],
+		colors: [componentBackgroundColor.value],
 		show: true,
 		width: 2,
 	},
@@ -90,11 +111,19 @@ const chartOptions = ref({
 		},
 		type: "category",
 	},
-});
+}));
 
 const chartHeight = computed(() => {
 	return `${50 + props.series[0].data.length * 30}`;
 });
+
+watch(
+	() => themeStore.theme,
+	() => {
+		chartRenderKey.value += 1;
+	},
+	{ immediate: true }
+);
 
 const selectedIndex = ref(null);
 
@@ -140,6 +169,7 @@ function handleDataSelection(_e, _chartContext, config) {
     v-if="activeChart === 'BarPercentChart'"
   >
     <VueApexCharts
+      :key="`bar-percent-${chartRenderKey}`"
       type="bar"
       width="100%"
       :height="chartHeight"

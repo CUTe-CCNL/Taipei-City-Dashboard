@@ -13,6 +13,8 @@ import DistrictChart from "./components/DistrictChart.vue";
 import DonutChart from "./components/DonutChart.vue";
 import BarChart from "./components/BarChart.vue";
 import TreemapChart from "./components/TreemapChart.vue";
+import SankeyChart from "./components/SankeyChart.vue";
+import SunburstChart from "./components/SunburstChart.vue";
 import ColumnChart from "./components/ColumnChart.vue";
 import BarPercentChart from "./components/BarPercentChart.vue";
 import GuageChart from "./components/GuageChart.vue";
@@ -46,6 +48,8 @@ import RadarChartSvg from "./assets/chart/RadarChart.svg";
 import TimelineSeparateChartSvg from "./assets/chart/TimelineSeparateChart.svg";
 import BarChartWithGoalSvg from "./assets/chart/BarChartWithGoal.svg";
 import TreemapChartSvg from "./assets/chart/TreemapChart.svg";
+import SankeyChartSvg from "./assets/chart/SankeyChart.svg";
+import SunburstChartSvg from "./assets/chart/SunburstChart.svg";
 import IndicatorChartSvg from "./assets/chart/IndicatorChart.svg";
 import TextUnitChartSvg from "./assets/chart/TextUnitChart.svg";
 
@@ -206,6 +210,10 @@ function returnChartComponent(name, svg) {
 		return svg ? DonutChartSvg : DonutChart;
 	case "TreemapChart":
 		return svg ? TreemapChartSvg : TreemapChart;
+	case "SankeyChart":
+		return svg ? SankeyChartSvg : SankeyChart;
+	case "SunburstChart":
+		return svg ? SunburstChartSvg : SunburstChart;
 	case "BarPercentChart":
 		return svg ? BarPercentChartSvg : BarPercentChart;
 	case "GuageChart":
@@ -649,9 +657,9 @@ button:hover {
 				);
 				transition: color 0.2s;
 
-				&:hover {
-					color: white;
-				}
+					&:hover {
+						color: var(--color-normal-text);
+					}
 			}
 
 			button.isfavorite span {
@@ -706,29 +714,35 @@ button:hover {
 			margin: 0 auto;
 			transform: translateX(-15%);
 
-			&-button {
-				margin: 0 2px;
-				padding: 4px 4px;
-				border-radius: 5px;
-				background-color: rgb(77, 77, 77);
-				opacity: 0.6;
-				color: var(--color-complement-text);
-				font-size: var(--font-s);
-				text-align: center;
-				transition: color 0.2s, opacity 0.2s;
-				user-select: none;
-	
-				&:hover {
-					opacity: 1;
-					color: white;
+				&-button {
+					margin: 0 2px;
+					padding: 4px 4px;
+					border-radius: 5px;
+					border: 1px solid var(--color-border);
+					background-color: var(--color-component-background);
+					color: var(--color-normal-text);
+					font-size: var(--font-s);
+					text-align: center;
+					transition: color 0.2s, opacity 0.2s, border-color 0.2s,
+						background-color 0.2s;
+					user-select: none;
+		
+					&:not(.dashboardcomponent-control-group-active):hover {
+						border-color: var(--color-highlight);
+						color: var(--color-highlight);
+					}
+				}
+			
+				&-active {
+					border-color: var(--color-highlight);
+					background-color: var(--color-highlight);
+					color: #1a1a1a;
+
+					&:hover {
+						color: #1a1a1a;
+					}
 				}
 			}
-	
-			&-active {
-				background-color: var(--color-complement-text);
-				color: white;
-			}
-		}
 
 		.selectBtn {
 			background-color: var(--color-component-background);

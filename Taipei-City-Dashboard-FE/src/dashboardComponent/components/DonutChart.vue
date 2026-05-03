@@ -1,8 +1,11 @@
 <!-- Developed by Taipei Urban Intelligence Center 2023-2024-->
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import VueApexCharts from "vue3-apexcharts";
+import { useThemeStore } from "../../store/themeStore";
+import { resolveChartColors } from "../utilities/chartColors";
+import { getThemeColor } from "../utilities/themeColors";
 
 const props = defineProps([
 	"chart_config",
@@ -20,6 +23,9 @@ const emits = defineEmits([
 	"clearByLayerFilter",
 	"fly"
 ]);
+
+const themeStore = useThemeStore();
+const chartRenderKey = ref(0);
 
 // How many data points to show before summing all remaining points into "other"
 const steps = ref(100);
@@ -57,16 +63,42 @@ const sum = computed(() => {
 	return Math.round(parsedSeries.value.reduce((a, b) => a + b) * 100) / 100;
 });
 
+const parsedData = computed(() =>
+	parsedLabels.value.map((label, index) => ({
+		x: label,
+		y: parsedSeries.value[index] ?? 0,
+	}))
+);
+
+const chartColors = computed(() => {
+	const colors = resolveChartColors(props.chart_config.color, parsedData.value);
+	const otherIndex = parsedLabels.value.indexOf("其他");
+	if (otherIndex !== -1) {
+		colors[otherIndex] = themeStore.theme === "light" ? "#6a6f76" : "#848c94";
+	}
+	return colors;
+});
+
+const componentBackgroundColor = computed(() => {
+	themeStore.theme;
+	return getThemeColor("--color-component-background");
+});
+
+const labelTextColor = computed(() => {
+	themeStore.theme;
+	return getThemeColor("--color-normal-text");
+});
+
 // chartOptions needs to be in the bottom since it uses computed data
-const chartOptions = ref({
+const chartOptions = computed(() => ({
 	chart: {
 		offsetY: 10,
 	},
-	colors:
-		props.series.length >= steps.value
-			? [...props.chart_config.color, "#848c94"]
-			: props.chart_config.color,
+	colors: chartColors.value,
 	dataLabels: {
+		style: {
+			colors: parsedLabels.value.map(() => labelTextColor.value),
+		},
 		formatter: function (
 			_val,
 			{ seriesIndex, w }
@@ -75,7 +107,7 @@ const chartOptions = ref({
 			return value.length > 7 ? value.slice(0, 6) + "..." : value;
 		},
 	},
-	labels: parsedLabels,
+	labels: parsedLabels.value,
 	legend: {
 		show: false,
 	},
@@ -90,7 +122,7 @@ const chartOptions = ref({
 		},
 	},
 	stroke: {
-		colors: ["#282a2c"],
+		colors: [componentBackgroundColor.value],
 		show: true,
 		width: 3,
 	},
@@ -115,7 +147,15 @@ const chartOptions = ref({
 			);
 		},
 	},
-});
+}));
+
+watch(
+	() => themeStore.theme,
+	() => {
+		chartRenderKey.value += 1;
+	},
+	{ immediate: true }
+);
 
 const selectedIndex = ref(null);
 
@@ -162,6 +202,7 @@ function handleDataSelection(_e, _chartContext, config) {
     class="donutchart"
   >
     <VueApexCharts
+      :key="`donut-${chartRenderKey}`"
       width="100%"
       type="donut"
       :options="chartOptions"
