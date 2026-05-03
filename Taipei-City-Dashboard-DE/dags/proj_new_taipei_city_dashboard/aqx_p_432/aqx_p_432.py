@@ -176,7 +176,7 @@ def _transfer(**kwargs):
             subset=["longitude", "latitude"]
         )
         if "county" in geo_data.columns:
-            geo_data["county"] = geo_data["county"].replace({"新北(樹林)": "樹林"})
+            geo_data["county"] = geo_data["county"].replace({"新北（樹林）": "樹林"})
             allowed_counties = {"新北市", "台北市", "臺北市"}
             allowed_counties.add("樹林")
             geo_data = geo_data[geo_data["county"].isin(allowed_counties)]
