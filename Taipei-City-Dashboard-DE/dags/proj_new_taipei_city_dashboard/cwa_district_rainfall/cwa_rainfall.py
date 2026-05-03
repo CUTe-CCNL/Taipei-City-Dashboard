@@ -30,7 +30,7 @@ def _transfer(**kwargs):
     
     url = 'https://opendata.cwa.gov.tw/api/v1/rest/datastore/O-A0002-001'
     
-    # 修正：拉高 limit 確保拿到所有測站，移除 RainfallElement 避免過濾異常
+    # 修正：Remove limit 確保拿到所有測站 (限制最多回傳的資料，預設為回傳全部筆數)
     params = {       
         'offset': 0,
         'format': 'JSON'
@@ -47,7 +47,7 @@ def _transfer(**kwargs):
         'Upgrade-Insecure-Requests': '1'
     }
     
-    response = requests.get(url, headers=headers, params=params, timeout=120)
+    response = requests.get(url, headers=headers, params=params, timeout=120, proxies=proxies)
     
     try:
         response.raise_for_status()
@@ -71,12 +71,13 @@ def _transfer(**kwargs):
         
         # 只保留「雙北」的測站
         if county in ['臺北市', '台北市', '新北市']:
+            county = '臺北市' if county == '台北市' else county  # 統一「台北市」為「臺北市」
             rain_data = s.get('RainfallElement', {})
 
             def clean_rain_value(val):
                 try:
                     v = float(val)
-                    return float(val) if float(val) >= 0 else None
+                    return v if v >= 0 else None
                 except (ValueError, TypeError):
                     return None
 
