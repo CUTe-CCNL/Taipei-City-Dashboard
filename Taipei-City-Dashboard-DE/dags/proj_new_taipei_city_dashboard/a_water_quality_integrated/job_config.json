@@ -1,0 +1,31 @@
+{
+    "dag_infos": {
+        "dag_id": "water_quality_integrated",
+        "start_date": "2026-05-02",
+        "schedule_interval": "@daily",
+        "catchup": false,
+        "tags": [
+            "water_quality_integrated",
+            "MOENV",
+            "雙北水環境",
+            "水質監測"
+        ],
+        "description": "MOENV 雙北水環境整合資料 (水庫/地下水/河川) 寫入 taipei_water_quality（replace，不寫 dataset_info）。",
+        "default_args": {
+            "owner": "airflow",
+            "email": [
+                "DEFAULT_EMAIL_LIST"
+            ],
+            "email_on_retry": false,
+            "email_on_failure": true,
+            "retries": 1,
+            "retry_delay": 60
+        },
+        "ready_data_db": "postgres_default",
+        "ready_data_default_table": "taipei_water_quality",
+        "ready_data_history_table": "",
+        "raw_data_db": "postgres_default",
+        "raw_data_table": "",
+        "load_behavior": "replace"
+    }
+}
